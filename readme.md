@@ -83,3 +83,11 @@ Launch gradio app locally (this runs the model we just downloaded). *Options are
 python app.py --model-size medium
 ```
 
+## References:
+
+Some code modified from the following sources:
+- minGPT: https://github.com/karpathy/minGPT
+- GPT-NeoX: https://github.com/EleutherAI/gpt-neox/
+- Attention with Linear Biases: https://github.com/ofirpress/attention_with_linear_biases
+- Typical Sampling: https://github.com/cimeister/typical-sampling
+- Nucleus Sampling: https://gist.github.com/thomwolf/1a5a29f6962089e871b94cbd09daf317
