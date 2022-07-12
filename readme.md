@@ -66,6 +66,12 @@ Clone the repo:
 git clone https://github.com/fattorib/Faster-GPT.git
 ```
 
+Install demo requirements:
+
+```
+pip install -r requirements-demo
+```
+
 Download a model checkpoint (this downloads the 354M param model):
 
 ```
