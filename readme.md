@@ -75,7 +75,7 @@ pip install -r requirements-demo
 Download a model checkpoint (this downloads the 354M param model):
 
 ```
-python download_checkpoints.py --model-size 354 --full-state
+python download_checkpoints.py --model-size 354
 ```
 
 Launch gradio app locally:
