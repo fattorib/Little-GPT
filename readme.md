@@ -72,14 +72,14 @@ Install demo requirements:
 pip install -r requirements-demo
 ```
 
-Download a model checkpoint (this downloads the 354M param model):
+Download a model checkpoint (this downloads the 354M param model). *Options are 127,303,354*:
 
 ```
 python download_checkpoints.py --model-size 354
 ```
 
-Launch gradio app locally:
+Launch gradio app locally (this runs the model we just downloaded). *Options are base\*, medium\*, medium*:
 ```
-python app.py --model-size *your model size here*
+python app.py --model-size medium
 ```
 
