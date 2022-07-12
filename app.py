@@ -9,6 +9,7 @@ import argparse
 def parse():
     parser = argparse.ArgumentParser(description="Gradio Inference App")
     parser.add_argument("--model-size", default="medium", type=str)
+    parser.add_argument("--share", default=False, action="store_true")
     args = parser.parse_args()
     return args
 
@@ -182,4 +183,4 @@ if __name__ == "__main__":
         article="For more details check out the model repo [here](https://github.com/fattorib/Faster-GPT)",
         allow_flagging="never",
     )
-    iface.launch(share=False, server_name="0.0.0.0")
+    iface.launch(share=args.share)
