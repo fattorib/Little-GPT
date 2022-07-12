@@ -85,7 +85,7 @@ python app.py --model-size medium
 
 ## References:
 
-Some code modified from the following sources:
+Some code in this repo has been modified from the following sources:
 - minGPT: https://github.com/karpathy/minGPT
 - GPT-NeoX: https://github.com/EleutherAI/gpt-neox/
 - Attention with Linear Biases: https://github.com/ofirpress/attention_with_linear_biases
