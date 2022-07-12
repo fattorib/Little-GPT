@@ -1,0 +1,15 @@
+wandb==0.12.21
+einops==0.4.1
+tokenizers==0.12.1
+hydra-core==1.2.0
+tqdm==4.64.0
+black==21.9b0
+boto3==1.20.54
+accelerate==0.10.0
+transformers==4.20.1
+webdataset==0.2.5
+jsonlines==2.0.0
+gradio==3.0.23
+--extra-index-url https://download.pytorch.org/whl/cu113
+torch==1.11.0+cu113
+pandas==1.4.3

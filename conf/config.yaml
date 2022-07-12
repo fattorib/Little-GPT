@@ -1,0 +1,36 @@
+training:
+  max_epochs: 10
+  workers: 8
+  batch_size: 8
+  gradient_accumulation_steps: 16
+  weight_decay: 1e-1
+  log_freq: 500
+  eval_steps: 500
+  mixed_precision: True
+  max_lr: 6e-4
+  min_lr: 6e-5
+  warmup: 4000
+  no_lr_decay: False
+  steps: 51000
+  anneal_steps: 45000
+  resume_training: False
+  training_checkpoint_file: 'checkpoints/training_params.pth.tar'
+  log_to_aws: True
+  prefix: 'GPT2_127_optimized'
+  n_devices: 4
+  use_pretrained_weights: False
+
+model:
+  size: 'base*'
+  fused_residuals: True
+  type: GPT2
+  tied_weights: True
+  num_head: 8
+  ALiBi: True
+  
+
+data: 
+  corpus: 'webtextnouveau'
+  metadata_path: 'data/processed/train/openwebtext_metadata.json'
+  seq_len: 1024
+  train_len: 512
