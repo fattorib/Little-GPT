@@ -106,6 +106,12 @@ def generate_text(
 
     elif sampling_choice == "Typical":
         typical_sampling = True
+    
+    elif sampling_choice == "Greedy":
+        top_p = 0.0
+        typical_sampling = False
+        top_k = 1
+
 
     generated_text, new_gen, _ = generator.generate_text_from_prompt(
         model=model,
@@ -166,7 +172,7 @@ if __name__ == "__main__":
                 label="Tau (Typical Sampling)",
             ),
             gr.inputs.Radio(
-                choices=["Top-k", "Nucleus", "Typical"],
+                choices=["Top-k", "Nucleus", "Typical", "Greedy"],
                 label="Sampling Method",
                 default="Nucleus",
             ),
