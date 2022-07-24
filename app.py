@@ -1,4 +1,5 @@
 import gradio as gr
+from matplotlib.pyplot import show
 import torch
 from src.models.GPT2 import model_getter
 from src.utils.generation_utils import TextGenerator
@@ -25,7 +26,7 @@ generator = TextGenerator(
 
 def model_creator(size: str) -> torch.nn.Module:
 
-    if size == "small":
+    if size == "base*":
         model = model_getter(
             "base*",
             vocab_size=50257,
@@ -182,5 +183,6 @@ if __name__ == "__main__":
         description=description,
         article="For more details check out the model repo [here](https://github.com/fattorib/Faster-GPT)",
         allow_flagging="never",
+
     )
     iface.launch(share=args.share)
