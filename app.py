@@ -100,17 +100,21 @@ def generate_text(
     if sampling_choice == "Top-k":
         top_p = 0.0
         typical_sampling = False
+        sample = True
 
     elif sampling_choice == "Nucleus":
         typical_sampling = False
+        sample = True
 
     elif sampling_choice == "Typical":
         typical_sampling = True
+        sample = True
     
     elif sampling_choice == "Greedy":
         top_p = 0.0
         typical_sampling = False
         top_k = 1
+        sample = False
 
 
     generated_text, new_gen, _ = generator.generate_text_from_prompt(
@@ -118,7 +122,7 @@ def generate_text(
         prompt=prompt.strip(),
         steps=int(steps),
         temperature=temperature,
-        sample=True,
+        sample=sample,
         top_k=top_k,
         top_p=top_p,
         typical_sampling=typical_sampling,
