@@ -40,7 +40,7 @@ def adjust_learning_rate(
 
 
 def adjust_learning_rate_inv_sqrt(
-    optimizer: torch.optim, step: int, cfg: dictConfig
+    optimizer: torch.optim, step: int, cfg: DictConfig
 ) -> float:
     """
     Adjusts learning rate to follow inverse sqrt with warmup. Learning rate
