@@ -342,6 +342,7 @@ class GPT2(nn.Module):
         resid_dropout: float = 0.0,
         embedding_dropout: float = 0.0,
         use_alibi: bool = False,
+        use_bnb = False 
     ):
         super().__init__()
         self.num_ctx = num_ctx
@@ -359,7 +360,11 @@ class GPT2(nn.Module):
         Basic GPT2 transformer module
         """
 
-        self.wte = nn.Embedding(self.vocab_size, self.embedding_dim)
+        if use_bnb:
+            import bitsandbytes as bnb 
+            self.wte = bnb.nn.StableEmbedding(self.vocab_size, self.embedding_dim)
+        else:
+            self.wte = nn.Embedding(self.vocab_size, self.embedding_dim)
 
         if not self.use_alibi:
             self.wpe = nn.Embedding(self.num_ctx, self.embedding_dim)
@@ -563,6 +568,26 @@ def create_GPT2_medium_optimized(vocab_size, num_ctx, **kwargs):
         **kwargs
     )
 
+def create_GPT2_XL_optimized(vocab_size, num_ctx, **kwargs):
+    """
+    Updated GPT-XL (ish) model optimized for increased throughput.
+    The following changes have been made:
+        1. Parallel Residual layers
+        2. Increased embedding dimension and head dimension (decreased num_heads)
+        3. Decreased model depth to hold params ~constant
+        4. Decreased train ctx due to ALiBi
+
+    """
+    return GPT2(
+        num_ctx=num_ctx,
+        embedding_dim=2048,
+        N=18,
+        vocab_size=vocab_size,
+        use_bnb=True
+        **kwargs
+    )
+
+
 
 def model_getter(model_name, vocab_size, num_ctx, **kwargs):
     MODELS_DICT = {
@@ -571,6 +596,7 @@ def model_getter(model_name, vocab_size, num_ctx, **kwargs):
         "medium": create_GPT2_medium,
         "base*": create_GPT2_base_optimized,
         "medium*": create_GPT2_medium_optimized,
+        "XL*": create_GPT2_XL_optimized,
     }
 
     return MODELS_DICT[model_name](vocab_size, num_ctx, **kwargs)

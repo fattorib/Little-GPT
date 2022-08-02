@@ -2,26 +2,26 @@ training:
   max_epochs: 10
   workers: 8
   batch_size: 8
-  gradient_accumulation_steps: 16
+  gradient_accumulation_steps: 8
   weight_decay: 1e-1
   log_freq: 500
   eval_steps: 500
   mixed_precision: True
-  max_lr: 6e-4
-  min_lr: 6e-5
+  max_lr: 2e-4
+  min_lr: 2e-5
   warmup: 4000
   no_lr_decay: False
-  steps: 51000
+  steps: 48000
   anneal_steps: 45000
   resume_training: False
   training_checkpoint_file: 'checkpoints/training_params.pth.tar'
   log_to_aws: True
-  prefix: 'GPT2_127_optimized'
-  n_devices: 4
+  prefix: 'GPT2_1B_optimized'
+  n_devices: 8
   use_pretrained_weights: False
 
 model:
-  size: 'base*'
+  size: 'XL*'
   fused_residuals: True
   type: GPT2
   tied_weights: True
