@@ -26,51 +26,26 @@ generator = TextGenerator(
 
 def model_creator(size: str) -> torch.nn.Module:
 
-    if size == "base*":
+    save_paths = {
+        'base*': 'checkpoints/127_weights.pth.tar',
+        'medium*': 'checkpoints/303_weights.pth.tar',
+        'XL*': 'checkpoints/1B_weights_8bit.pth.tar',
+    }
+
+    if "*" in size:
+
         model = model_getter(
-            "base*",
+            size,
             vocab_size=50257,
             num_ctx=512,
-            **{"fused_residuals": True, "num_head": 8, "use_alibi": True},
+            model_checkpoint = save_paths[size],
+            **{
+                "fused_residuals": True,
+                "num_head": 8,
+                "use_alibi": True,
+                "quantized_state": True if "XL" in size else False
+            },
         )
-
-        state_dict = torch.load(
-            rf"checkpoints/127_weights.pth.tar",
-            map_location="cpu",
-        )
-
-        model.load_state_dict(state_dict)
-
-        # Setting model context:
-        PRIME_CTX = 1024
-        # prime with ctx of 1024:
-        with torch.no_grad():
-            data_batch = torch.randint(low=0, high=50257, size=(1, PRIME_CTX))
-            model(data_batch)
-            logging.info(f"Evaluating ALiBi model with context: {PRIME_CTX}")
-
-    if size == "medium*":
-        model = model_getter(
-            "medium*",
-            vocab_size=50257,
-            num_ctx=512,
-            **{"fused_residuals": True, "num_head": 8, "use_alibi": True},
-        )
-
-        state_dict = torch.load(
-            rf"checkpoints/303_weights.pth.tar",
-            map_location="cpu",
-        )
-
-        model.load_state_dict(state_dict)
-
-        # Setting model context:
-        PRIME_CTX = 1024
-        # prime with ctx of 1024:
-        with torch.no_grad():
-            data_batch = torch.randint(low=0, high=50257, size=(1, PRIME_CTX))
-            model(data_batch)
-            logging.info(f"Evaluating ALiBi model with context: {PRIME_CTX}")
 
     elif size == "medium":
         model = model_getter(
@@ -84,6 +59,8 @@ def model_creator(size: str) -> torch.nn.Module:
             rf"checkpoints/354_weights.pth.tar",
             map_location="cpu",
         )
+
+        del state_dict
 
         model.load_state_dict(state_dict)
 
@@ -141,7 +118,7 @@ def generate_text(
 if __name__ == "__main__":
     args = parse()
 
-    assert args.model_size in ["base*", "medium*", "medium"]
+    assert args.model_size in ["base*", "medium*", "medium","XL*"]
 
     model = model_creator(args.model_size)
 
@@ -188,7 +165,7 @@ if __name__ == "__main__":
         ),
         live=False,
         title="GPT-* 🤖"
-        if args.model_size in ["base*", "medium*"]
+        if args.model_size in ["base*", "medium*", "XL*"]
         else "GPT-354M 🤖",
         description=description,
         article="For more details check out the model repo [here](https://github.com/fattorib/Faster-GPT)",
