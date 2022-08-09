@@ -5,7 +5,11 @@ import copy
 import math
 import torch.nn.functional as F
 from typing import Union, Tuple, List
-from src.utils.dynamic_quantization import bnbfy_
+
+try:
+    from src.utils.dynamic_quantization import bnbfy_
+except Exception as e:
+    print('Bitsandbytes not installed. Unable to perform inference with 8bit quantization')
 
 """
 Module class for GPT2. Follows paper specifications wherever possible.
