@@ -132,9 +132,9 @@ if __name__ == "__main__":
 
     model = model_creator(args.model_size)
 
-    # from src.utils.gradio_utils import DESCRIPTION_MAP
+    from src.utils.gradio_utils import DESCRIPTION_MAP
 
-    # description = DESCRIPTION_MAP[args.model_size]
+    description = DESCRIPTION_MAP[args.model_size]
 
     description = "WIP"
 
