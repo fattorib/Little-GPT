@@ -92,7 +92,7 @@ Early on in my experimentation, on the same 21B token corpus, I also trained a 3
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) | WikiText (PPL) | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|---------------|---------------|----------------|------------|-----------------|------------------|-----------------|
-| GPT-354 (Mine)    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | -           | 26B             |
+| GPT-354 (Mine)    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | -           | 21B             |
 | GPT-Neo 350M    | 47.27%        |  	13.876         | 22.5657         | 65.07%     | 32.16%         | 51.14%           | ~300B   |
 | GPT-3 350M    | 54.3%        |  	9.09         | 22.5657         | 70.2%     | 43.6%         | 52.1%           | 300B             |
 
