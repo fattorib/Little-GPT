@@ -60,9 +60,9 @@ def model_creator(size: str) -> torch.nn.Module:
             map_location="cpu",
         )
 
-        del state_dict
-
         model.load_state_dict(state_dict)
+
+        del state_dict
 
     model.to(DEVICE)
     model.eval()
