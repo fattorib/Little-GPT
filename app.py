@@ -1,9 +1,8 @@
 import gradio as gr
-from matplotlib.pyplot import show
 import torch
 from src.models.GPT2 import model_getter
 from src.utils.generation_utils import TextGenerator
-import logging
+import re
 import argparse
 
 
@@ -11,25 +10,45 @@ def parse():
     parser = argparse.ArgumentParser(description="Gradio Inference App")
     parser.add_argument("--model-size", default="medium", type=str)
     parser.add_argument("--share", default=False, action="store_true")
+    parser.add_argument("--bit-quantize", default=False, action="store_true")
     args = parser.parse_args()
     return args
+
+
+def text_standardize(text):
+    """
+    from GPT1 repo. Standard text cleaning
+    """
+    text = text.replace("—", "-")
+    text = text.replace("–", "-")
+    text = text.replace("―", "-")
+    text = text.replace("…", "...")
+    text = text.replace("´", "'")
+    text = re.sub(
+        """(-+|~+|!+|"+|;+|\?+|\++|,+|\)+|\(+|\\+|\/+|\*+|\[+|\]+|}+|{+|\|+|_+)""",
+        r" \1 ",
+        text,
+    )
+    text = re.sub("\s*\n\s*", " \n ", text)
+    text = re.sub("\s*\t\s*", " ", text)
+    text = re.sub("[^\S\n]+", " ", text)
+    return text.strip()
 
 
 DEVICE = "cpu"
 if torch.cuda.is_available():
     DEVICE = "cuda"
 
-generator = TextGenerator(
-    seq_len=1024,
-)
+generator = TextGenerator(seq_len=512, tokenizer=None)
 
 
 def model_creator(size: str) -> torch.nn.Module:
 
     save_paths = {
-        'base*': 'checkpoints/127_weights.pth.tar',
-        'medium*': 'checkpoints/303_weights.pth.tar',
-        'XL*': 'checkpoints/1B_weights_8bit.pth.tar',
+        "base*": "checkpoints/127_weights.pth.tar",
+        "medium*": "checkpoints/303_weights.pth.tar",
+        "XL*": "checkpoints/1B_weights_8bit.pth.tar",
+        "medium": "checkpoints/354_weights.pth.tar",
     }
 
     if "*" in size:
@@ -38,12 +57,12 @@ def model_creator(size: str) -> torch.nn.Module:
             size,
             vocab_size=50257,
             num_ctx=512,
-            model_checkpoint = save_paths[size],
+            model_checkpoint=save_paths[size],
             **{
                 "fused_residuals": True,
                 "num_head": 8,
                 "use_alibi": True,
-                "quantized_state": True if "XL" in size else False
+                "quantized_state": True if "XL" in size else False,
             },
         )
 
@@ -52,17 +71,9 @@ def model_creator(size: str) -> torch.nn.Module:
             "medium",
             vocab_size=50257,
             num_ctx=1024,
+            model_checkpoint=save_paths[size],
             **{"fused_residuals": False, "use_alibi": False},
         )
-
-        state_dict = torch.load(
-            rf"checkpoints/354_weights.pth.tar",
-            map_location="cpu",
-        )
-
-        model.load_state_dict(state_dict)
-
-        del state_dict
 
     model.to(DEVICE)
     model.eval()
@@ -86,17 +97,16 @@ def generate_text(
     elif sampling_choice == "Typical":
         typical_sampling = True
         sample = True
-    
+
     elif sampling_choice == "Greedy":
         top_p = 0.0
         typical_sampling = False
         top_k = 1
         sample = False
 
-
     generated_text, new_gen, _ = generator.generate_text_from_prompt(
         model=model,
-        prompt=prompt.strip(),
+        prompt=text_standardize(prompt),
         steps=int(steps),
         temperature=temperature,
         sample=sample,
@@ -118,13 +128,15 @@ def generate_text(
 if __name__ == "__main__":
     args = parse()
 
-    assert args.model_size in ["base*", "medium*", "medium","XL*"]
+    assert args.model_size in ["base*", "medium*", "medium", "XL*"]
 
     model = model_creator(args.model_size)
 
-    from src.utils.gradio_utils import DESCRIPTION_MAP
+    # from src.utils.gradio_utils import DESCRIPTION_MAP
 
-    description = DESCRIPTION_MAP[args.model_size]
+    # description = DESCRIPTION_MAP[args.model_size]
+
+    description = "WIP"
 
     iface = gr.Interface(
         fn=generate_text,
@@ -170,6 +182,5 @@ if __name__ == "__main__":
         description=description,
         article="For more details check out the model repo [here](https://github.com/fattorib/Faster-GPT)",
         allow_flagging="never",
-
     )
     iface.launch(share=args.share)

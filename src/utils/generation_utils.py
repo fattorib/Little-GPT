@@ -11,6 +11,7 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
+from tokenizers import Tokenizer
 from typing import Tuple, List
 
 
@@ -95,12 +96,19 @@ class TextGenerator:
     def __init__(
         self,
         seq_len: int,
+        tokenizer: Tokenizer,
     ) -> None:
-        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-        self.seq_len = seq_len
-        self.pad_token = self.tokenizer.eos_token_id
+        if tokenizer is not None:
+            self.tokenizer = tokenizer
+            self.vocab_size = 32001
+            self.seq_len = seq_len
+            self.pad_token = tokenizer.token_to_id("<EOS>")
 
-        self.vocab_size = 50257
+        else:
+            self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+            self.vocab_size = 50257
+            self.seq_len = seq_len
+            self.pad_token = self.tokenizer.eos_token_id
 
     def generate_text_from_prompt(
         self,
@@ -160,10 +168,6 @@ class TextGenerator:
         model.eval()
         logprobs = []
 
-        # device = "cpu"
-        # if torch.cuda.is_available():
-        #     device = "cuda"
-
         tokens = torch.tensor(
             self.tokenizer.encode(prompt.strip()),
             dtype=torch.long,
@@ -172,19 +176,23 @@ class TextGenerator:
 
         x = tokens.view(1, -1)
 
+        num_token = self.seq_len
+
+        if x.shape[1] > num_token:
+
+            x_cond = x[:, -num_token:]
+
+        else:
+            x_cond = x
+
+        layer_past = None
+
         for step in tqdm(range(steps)):
 
-            num_token = self.seq_len
-
-            if x.shape[1] > num_token:
-
-                x_cond = x[:, -num_token:]
-
-            else:
-                x_cond = x
-
             with torch.autocast(device_type=device):
-                logits = model(x_cond)
+                logits, layer_past = model(
+                    x_cond, use_cache=True, past_states=layer_past
+                )
 
             logits = logits[:, -1, :] / temperature
 
@@ -208,12 +216,12 @@ class TextGenerator:
                 if out.item() == self.pad_token:
                     return x[:, :], step
             else:
-                out = torch.multinomial(probs, num_samples=1)
-                logprobs.append(torch.log(probs[:, out]).item())
+                x_cond = torch.multinomial(probs, num_samples=1)
+                logprobs.append(torch.log(probs[:, x_cond]).item())
                 # If we hit end of text, return as-is
-                if out.item() == self.pad_token:
+                if x_cond.item() == self.pad_token:
                     return x[:, :], step
                 else:
-                    x = torch.cat((x[:, :], out), axis=1)
+                    x = torch.cat((x[:, :], x_cond), axis=1)
 
         return x, steps, logprobs

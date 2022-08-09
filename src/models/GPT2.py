@@ -5,11 +5,7 @@ import copy
 import math
 import torch.nn.functional as F
 from typing import Union, Tuple, List
-
-try:
-    from src.utils.dynamic_quantization import bnbfy_
-except Exception as e:
-    pass
+from src.utils.dynamic_quantization import bnbfy_
 
 """
 Module class for GPT2. Follows paper specifications wherever possible.
@@ -120,12 +116,14 @@ class ALiBi(nn.Module):
         self.n_head = num_head
         self.num_layers = num_layers
 
-        self.register_buffer("slopes", torch.Tensor(self.get_slopes(self.n_head)))
+        self.register_buffer(
+            "slopes", torch.Tensor(self.get_slopes(self.n_head))
+        )
         self.register_buffer(
             "mask",
-            torch.tril(torch.ones(block_size, block_size, dtype=torch.uint8)).view(
-                1, 1, block_size, block_size
-            ),
+            torch.tril(
+                torch.ones(block_size, block_size, dtype=torch.uint8)
+            ).view(1, 1, block_size, block_size),
         )
 
         init_function_partial = partial(
@@ -151,39 +149,88 @@ class ALiBi(nn.Module):
                 ]
             )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        use_cache: bool = False,
+        layer_past: Tuple[torch.Tensor, torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         B, T, C = x.size()
         k = (
-            self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+            self.key(x)
+            .view(B, T, self.n_head, C // self.n_head)
+            .transpose(1, 2)
         )  # (B, nh, T, hs)
         q = (
-            self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+            self.query(x)
+            .view(B, T, self.n_head, C // self.n_head)
+            .transpose(1, 2)
         )  # (B, nh, T, hs)
         v = (
-            self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+            self.value(x)
+            .view(B, T, self.n_head, C // self.n_head)
+            .transpose(1, 2)
         )  # (B, nh, T, hs)
 
+        present = None
+        if use_cache:
+            if layer_past is not None:
+                past_keys, past_values = layer_past
+                k = torch.cat((past_keys, k), dim=-2)
+                v = torch.cat((past_values, v), dim=-2)
+
+            present = torch.stack((k, v))
+
+        # Need to grab these
+        seq_len_k, seq_len_q = k.size(-2), q.size(-2)
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
 
         # Creation of ALiBi distance matrix -> Computed on first forward pass
         # and stored. If CTX changes, we update this
-        if self.cached_ctx != T:
+        if self.cached_ctx != seq_len_k:
+
             # Update Buffer mask
             self.mask = (
-                torch.tril(torch.ones(T, T, dtype=torch.uint8))
-                .view(1, 1, T, T)
+                torch.tril(torch.ones(seq_len_k, seq_len_k, dtype=torch.uint8))
+                .view(1, 1, seq_len_k, seq_len_k)
                 .to(x.device)
             )
 
             # Create ALiBi distance matrix
             a = -torch.tril(
-                torch.arange(T).view(T, 1).repeat(1, T) + torch.arange(0, -T, -1)
+                torch.arange(seq_len_k).view(seq_len_k, 1).repeat(1, seq_len_k)
+                + torch.arange(0, -seq_len_k, -1)
             )
             a = a.to(x.device).to(x.dtype)
 
             self.alibi_cache = a * self.slopes.view(self.slopes.shape[0], 1, 1)
-            self.cached_ctx = T
+            self.cached_ctx = seq_len_k
+
+        if seq_len_k != seq_len_q:
+            assert (
+                seq_len_q == 1
+            ), "assumption sq == sk unless at inference time with cache in layer_past with sq == 1"
+            # Update Buffer mask
+            self.mask = (
+                torch.tril(torch.ones(seq_len_k, seq_len_k, dtype=torch.uint8))
+                .view(1, 1, seq_len_k, seq_len_k)
+                .to(x.device)
+            )
+
+            # Create ALiBi distance matrix
+            a = -torch.tril(
+                torch.arange(seq_len_k).view(seq_len_k, 1).repeat(1, seq_len_k)
+                + torch.arange(0, -seq_len_k, -1)
+            )
+
+            a = a.to(x.device).to(x.dtype)
+
+            a = a * self.slopes.view(self.slopes.shape[0], 1, 1)
+
+            self.alibi_cache = a[:, seq_len_k - 1, :].view(
+                a.shape[0], 1, a.shape[2]
+            )
 
         att = att + self.alibi_cache
 
@@ -196,7 +243,7 @@ class ALiBi(nn.Module):
 
         # output projection
         y = self.resid_drop(self.fc_resid(y))
-        return y
+        return y, present
 
 
 class CausalSelfAttention(nn.Module):
@@ -225,9 +272,9 @@ class CausalSelfAttention(nn.Module):
         self.fc_resid = nn.Linear(embedding_dim, embedding_dim)
         self.register_buffer(
             "mask",
-            torch.tril(torch.ones(block_size, block_size, dtype=torch.uint8)).view(
-                1, 1, block_size, block_size
-            ),
+            torch.tril(
+                torch.ones(block_size, block_size, dtype=torch.uint8)
+            ).view(1, 1, block_size, block_size),
         )
         self.n_head = num_head
         self.num_layers = num_layers
@@ -241,18 +288,38 @@ class CausalSelfAttention(nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-    ) -> torch.Tensor:
+        use_cache: bool = False,
+        layer_past: Tuple[torch.Tensor, torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         B, T, C = x.size()
 
         k = (
-            self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+            self.key(x)
+            .view(B, T, self.n_head, C // self.n_head)
+            .transpose(1, 2)
         )  # (B, nh, T, hs)
         q = (
-            self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+            self.query(x)
+            .view(B, T, self.n_head, C // self.n_head)
+            .transpose(1, 2)
         )  # (B, nh, T, hs)
         v = (
-            self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
+            self.value(x)
+            .view(B, T, self.n_head, C // self.n_head)
+            .transpose(1, 2)
         )  # (B, nh, T, hs)
+
+        present = None
+        if use_cache:
+            if layer_past is not None:
+                past_keys, past_values = layer_past
+                k = torch.cat((past_keys, k), dim=-2)
+                v = torch.cat((past_values, v), dim=-2)
+
+            present = torch.stack((k, v))
+
+        # Need to grab these
+        seq_len_k, seq_len_q = k.size(-2), q.size(-2)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
@@ -266,7 +333,7 @@ class CausalSelfAttention(nn.Module):
 
         # output projection
         y = self.resid_drop(self.fc_resid(y))
-        return y
+        return y, present
 
 
 class GPT2Block(nn.Module):
@@ -310,13 +377,21 @@ class GPT2Block(nn.Module):
             num_layers,
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        use_cache: bool = False,
+        layer_past: Tuple[torch.Tensor, torch.Tensor] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.fused_residuals:
-            x = x + self.mlp(self.ln1(x)) + self.attn(self.ln1(x))
+            mlp_out = self.mlp(self.ln1(x))
+            attn_out = self.attn(self.ln1(x), use_cache, layer_past)
+            x = x + mlp_out + attn_out[0]
         else:
-            x = x + self.attn(self.ln1(x))
+            attn_out = self.attn(self.ln1(x), use_cache, layer_past)
+            x = x + attn_out[0]
             x = x + self.mlp(self.ln2(x))
-        return x
+        return x, attn_out[1]
 
 
 class GPT2(nn.Module):
@@ -333,8 +408,7 @@ class GPT2(nn.Module):
         embedding_dropout: float = 0.0,
         use_alibi: bool = False,
         use_bnb=False,
-        quantized_state = False
-
+        quantized_state=False,
     ):
         super().__init__()
         self.num_ctx = num_ctx
@@ -355,7 +429,9 @@ class GPT2(nn.Module):
         if use_bnb:
             import bitsandbytes as bnb
 
-            self.wte = bnb.nn.StableEmbedding(self.vocab_size, self.embedding_dim)
+            self.wte = bnb.nn.StableEmbedding(
+                self.vocab_size, self.embedding_dim
+            )
         else:
             self.wte = nn.Embedding(self.vocab_size, self.embedding_dim)
 
@@ -415,7 +491,9 @@ class GPT2(nn.Module):
                 Bool whether to sample from logits distribution
         """
 
-        context = torch.tensor(context, dtype=torch.long).to(self.wte.weight.device)
+        context = torch.tensor(context, dtype=torch.long).to(
+            self.wte.weight.device
+        )
 
         x = context.view(1, -1)
 
@@ -449,15 +527,30 @@ class GPT2(nn.Module):
         self,
         x: torch.Tensor,
         labels: torch.Tensor = None,
+        use_cache: bool = False,
+        past_states: Tuple[torch.Tensor, torch.Tensor] = None,
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
 
         b, t = x.size()
 
         if not self.use_alibi:
-            position_ids = torch.arange(0, t, dtype=torch.long, device=x.device)
-            position_ids = position_ids.unsqueeze(0).view(-1, t)
+            if past_states is None:
+                position_ids = torch.arange(
+                    0, t, dtype=torch.long, device=x.device
+                )
+                position_ids = position_ids.unsqueeze(0).view(-1, t)
+                position_embeds = self.wpe(position_ids)
+            else:
+                past_length = past_states[0][0].size(-2)
 
-            position_embeds = self.wpe(position_ids)
+                position_ids = torch.arange(
+                    past_length,
+                    t + past_length,
+                    dtype=torch.long,
+                    device=x.device,
+                )
+                position_ids = position_ids.unsqueeze(0).expand_as(x)
+                position_embeds = self.wpe(position_ids)
 
         x = self.wte(x)
 
@@ -466,8 +559,17 @@ class GPT2(nn.Module):
         else:
             x = self.dropout(x)
 
-        for block in self.blocks:
-            x = block(x)
+        present_states = []
+        if not use_cache:
+            past_states = [None] * self.N
+
+        if past_states is None:
+            past_states = [None] * self.N
+
+        for block, past_states in zip(self.blocks, past_states):
+            x, layer_past = block(x, use_cache, past_states)
+
+            present_states.append(layer_past)
 
         x = self.norm(x)
 
@@ -487,7 +589,10 @@ class GPT2(nn.Module):
 
             return logits_lm, loss
         else:
-            return logits_lm
+            if use_cache:
+                return logits_lm, present_states
+            else:
+                return logits_lm
 
 
 def create_GPT2_qa(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
@@ -514,7 +619,11 @@ def create_GPT2_base(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     Matches the parameters of the original GPT2-117M model
     """
     model = GPT2(
-        num_ctx=num_ctx, embedding_dim=768, N=12, vocab_size=vocab_size, **kwargs
+        num_ctx=num_ctx,
+        embedding_dim=768,
+        N=12,
+        vocab_size=vocab_size,
+        **kwargs
     )
 
     if model_checkpoint is not None:
@@ -552,7 +661,9 @@ def create_GPT2_medium(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     return model
 
 
-def create_GPT2_base_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
+def create_GPT2_base_optimized(
+    vocab_size, num_ctx, model_checkpoint=None, **kwargs
+):
     """
     Updated GPT-medium model optimized for increased throughput.
     The following changes have been made:
@@ -563,7 +674,11 @@ def create_GPT2_base_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwa
 
     """
     model = GPT2(
-        num_ctx=num_ctx, embedding_dim=1024, N=6, vocab_size=vocab_size, **kwargs
+        num_ctx=num_ctx,
+        embedding_dim=1024,
+        N=6,
+        vocab_size=vocab_size,
+        **kwargs
     )
 
     if model_checkpoint is not None:
@@ -577,7 +692,9 @@ def create_GPT2_base_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwa
     return model
 
 
-def create_GPT2_medium_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
+def create_GPT2_medium_optimized(
+    vocab_size, num_ctx, model_checkpoint=None, **kwargs
+):
     """
     Updated GPT-medium model optimized for increased throughput.
     The following changes have been made:
@@ -589,7 +706,11 @@ def create_GPT2_medium_optimized(vocab_size, num_ctx, model_checkpoint=None, **k
     """
 
     model = GPT2(
-        num_ctx=num_ctx, embedding_dim=1536, N=8, vocab_size=vocab_size, **kwargs
+        num_ctx=num_ctx,
+        embedding_dim=1536,
+        N=8,
+        vocab_size=vocab_size,
+        **kwargs
     )
     if model_checkpoint is not None:
         state_dict = torch.load(
@@ -602,7 +723,9 @@ def create_GPT2_medium_optimized(vocab_size, num_ctx, model_checkpoint=None, **k
     return model
 
 
-def create_GPT2_XL_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
+def create_GPT2_XL_optimized(
+    vocab_size, num_ctx, model_checkpoint=None, **kwargs
+):
     """
     Updated GPT-XL (ish) model optimized for increased throughput.
     The following changes have been made:
@@ -621,19 +744,20 @@ def create_GPT2_XL_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwarg
         **kwargs
     )
 
-
     if model_checkpoint is not None:
         state_dict = torch.load(
             model_checkpoint,
             map_location="cpu",
         )
 
-        model.load_state_dict(state_dict['state_dict'])
+        model.load_state_dict(state_dict["state_dict"])
 
     return model
 
 
-def model_getter(model_name, vocab_size, num_ctx, model_checkpoint=None, **kwargs):
+def model_getter(
+    model_name, vocab_size, num_ctx, model_checkpoint=None, **kwargs
+):
     MODELS_DICT = {
         "qa": create_GPT2_qa,
         "base": create_GPT2_base,
@@ -643,4 +767,6 @@ def model_getter(model_name, vocab_size, num_ctx, model_checkpoint=None, **kwarg
         "XL*": create_GPT2_XL_optimized,
     }
 
-    return MODELS_DICT[model_name](vocab_size, num_ctx, model_checkpoint,**kwargs)
+    return MODELS_DICT[model_name](
+        vocab_size, num_ctx, model_checkpoint, **kwargs
+    )
