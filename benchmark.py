@@ -20,21 +20,20 @@ def parse():
 
     parser.add_argument("--model", type=str)
 
-    parser.add_argument("--checkpoint", type=str)
-
     parser.add_argument("--type", type=str)
 
     parser.add_argument("--eval-ctx", type=str)
 
     parser.add_argument("--hf-model", default=False, action="store_true")
 
+    parser.add_argument("--bit-quantize", default=False, action="store_true")
+
     args = parser.parse_args()
     return args
 
 
 def check_args(args):
-    assert args.dataset in DATASET_MAP.keys()
-    assert args.model in ["base", "medium*", "base*"]
+    assert args.model in ["base", "medium*", "base*", "XL*", "medium"]
     assert args.type in ["GPT2"]
 
 
@@ -45,18 +44,38 @@ def main():
 
     if not args.hf_model:
 
-        from src.models.GPT2 import model_getter as model_getter_GPT2
+        from src.models.GPT2 import model_getter as model_getter
 
-        state_dict = torch.load(args.checkpoint, map_location="cpu")
+        if "*" in args.model:
 
-        # ALiBi model, trained on 512 tokens
-        model = model_getter_GPT2(
-            args.model,
-            vocab_size=50257,
-            num_ctx=512,
-            **{"fused_residuals": True, "num_head": 8, "use_alibi": True},
-        )
-        model.load_state_dict(state_dict)
+            save_paths = {
+                "base*": "checkpoints/127_weights.pth.tar",
+                "medium*": "checkpoints/303_weights.pth.tar",
+                "XL*": "checkpoints/1B_weights_8bit.pth.tar",
+                "medium": "checkpoints/354_weights.pth.tar",
+            }
+
+            model = model_getter(
+                args.model,
+                vocab_size=50257,
+                num_ctx=512,
+                model_checkpoint=save_paths[args.model],
+                **{
+                    "fused_residuals": True,
+                    "num_head": 8,
+                    "use_alibi": True,
+                    "quantized_state": True if "XL" in args.model else False,
+                },
+            )
+
+        elif args.model == "medium":
+            model = model_getter(
+                "medium",
+                vocab_size=50257,
+                num_ctx=1024,
+                model_checkpoint="checkpoints/354_weights.pth.tar",
+                **{"fused_residuals": False, "use_alibi": False},
+            )
 
     else:
         from transformers import AutoModelForCausalLM
@@ -69,31 +88,40 @@ def main():
 
     tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 
-    dataset_tuple = DATASET_MAP[args.dataset]
+    dataset_list = [item for item in args.dataset.split(",")]
 
-    benchmark_function = METRIC_REGISTRY[dataset_tuple.metric]
+    task_df = pd.DataFrame()
 
-    context_list = [int(item) for item in args.eval_ctx.split(",")]
+    for dataset in dataset_list:
 
-    eval_value = []
-    ctx = []
-    for eval_ctx in context_list:
-        stride, max_length = eval_ctx, eval_ctx
-        assert dataset_tuple.metric in ["PPL", "BPB", "BPC"]
-        metric = benchmark_function(
-            model, args, tokenizer, stride=stride, max_length=max_length
+        args.dataset = dataset
+        dataset_tuple = DATASET_MAP[dataset]
+
+        benchmark_function = METRIC_REGISTRY[dataset_tuple.metric]
+
+        context_list = [int(item) for item in args.eval_ctx.split(",")]
+
+        eval_value = []
+        ctx = []
+        for eval_ctx in context_list:
+            stride, max_length = eval_ctx, eval_ctx
+            assert dataset_tuple.metric in ["PPL", "BPB", "BPC"]
+            metric = benchmark_function(
+                model, args, tokenizer, stride=stride, max_length=max_length
+            )
+            eval_value.append(metric.cpu().numpy())
+            ctx.append(eval_ctx)
+
+        single_task_df = pd.DataFrame(
+            {
+                "task": [dataset_tuple.dataset_name] * len(context_list),
+                "metric": [dataset_tuple.metric] * len(context_list),
+                "value": eval_value,
+                "eval context length": ctx,
+            }
         )
-        eval_value.append(metric.cpu().numpy())
-        ctx.append(eval_ctx)
 
-    task_df = pd.DataFrame(
-        {
-            "task": [dataset_tuple.dataset_name] * len(context_list),
-            "metric": [dataset_tuple.metric] * len(context_list),
-            "value": eval_value,
-            "eval context length": ctx,
-        }
-    )
+        task_df = task_df.append(single_task_df)
 
     print(task_df)
 
