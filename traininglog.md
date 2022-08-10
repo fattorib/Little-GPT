@@ -80,8 +80,8 @@ Benchmarks were performed using [Language Model Evaluation Harness](https://gith
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) | WikiText (PPL) | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|---------------|---------------|----------------|------------|-----------------|------------------|-----------------|
-| GPT-127*    | 36.23%        | 28.60         | 37.99          | 63.17%     | 28.07%          | 51.46%           | 26B            |
-| GPT-125M (Mine)    | 36.52%        | 30.0494         | 37.863         | 62.46%     | 28.57%          | -           | 21B            |
+| **GPT-127\***    | 36.23%        | 28.60         | 37.99          | 63.17%     | 28.07%          | 51.46%           | 26B            |
+| **GPT-125M (Mine)**    | 36.52%        | 30.0494         | 37.863         | 62.46%     | 28.57%          | -           | 21B            |
 | GPT-Neo 125M | 37.36%        | 30.266        | 32.285         | 63.06%     | 28.67%          | 50.43%           | 300B            |
 | GPT-3 125M   | 42.7%         | 18.6          | -              | 65.07%     | 33.7%           | 52.0%            | 300B            |
 
@@ -92,8 +92,8 @@ Early on in my experimentation, on the same 21B token corpus, I also trained a 3
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) | WikiText (PPL) | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|---------------|---------------|----------------|------------|-----------------|------------------|-----------------|
-| GPT-303*   | 43.39%        | 15.89         | 28.57         | 65.2%     | 29.8%          | 49.3%           | 26B            |
-| GPT-354 (Mine)    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | -           | 21B             |
+| **GPT-303\***   | 43.39%        | 15.89         | 28.57         | 65.2%     | 29.8%          | 49.3%           | 26B            |
+| **GPT-354 (Mine)**    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | 51.3%           | 21B             |
 | GPT-Neo 350M    | 47.27%        |  	13.876         | 22.5657         | 65.07%     | 32.16%         | 51.14%           | ~300B   |
 | GPT-3 350M    | 54.3%        |  	9.09         | 22.5657         | 70.2%     | 43.6%         | 52.1%           | 300B             |
 
@@ -104,7 +104,7 @@ My 354M param model I trained was able to generate relatively coherent sounding 
 (WIP) GPT-1B* is trained with the same setup with the following training changes:
 
 1. 8-bit optimizers from [bitsandbytes](https://github.com/facebookresearch/bitsandbytes)
-2. Staged Sequence Length Warmup from 128 to 512 (more details to come here)
+2. Staged Sequence Length Warmup from 128 to 512. Over the first 30% steps of training (15000 steps) the train sequence length was warmed up from 128 to 512 in stages of 3750 steps. The sequence length progression was (128,192,256,384,512).
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) |   WikiText (PPL)  | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|:-------------:|:-------------:|:-----------------:|:----------:|:---------------:|:----------------:|:---------------:|
