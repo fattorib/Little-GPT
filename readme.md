@@ -57,11 +57,12 @@ The following checkpoints are available for download:
 - GPT-303* with optimizer states
 - GPT-303* without optimizer states
 - GPT-345M  without optimizer states (*unfortunately this was meant to be a throwaway model and as such, I deleted the optimizer states*)
-
-TODO: Update with 1B models
+- GPT-1B* with optimizer states
+- GPT-1B* without optimizer states (can download 8bit quantized or full model)
 
 To download a checkpoints, clone the repo and run: 
 ```
+# options are "127", "303", "354", "1B", "1B8bit"
 python download_checkpoints.py --model-size 127 --full-state
 ```
 
@@ -78,7 +79,7 @@ Install demo requirements:
 pip install -r requirements-demo
 ```
 
-Download a model checkpoint (this downloads the 354M param model). *Options are 127,303,354*:
+Download a model checkpoint (this downloads the 354M param model):
 
 ```
 python download_checkpoints.py --model-size 354
@@ -86,6 +87,7 @@ python download_checkpoints.py --model-size 354
 
 Launch gradio app locally (this runs the model we just downloaded). *Options are base\*, medium\*, medium*:
 ```
+# options are  base\*, medium\*, medium*, XL*
 python app.py --model-size medium
 ```
 
