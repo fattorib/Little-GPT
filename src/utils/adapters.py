@@ -4,6 +4,7 @@ Functions for adding adapter modules to a pretrained GPT2 model.
 
 import torch
 import torch.nn as nn
+from typing import Tuple
 
 
 def _weights_init(m):
@@ -36,7 +37,7 @@ class BottleneckAdapter(nn.Module):
 
 
 def add_adapters(
-    model: torch.nn.Module, reduction_factor: int
+    model: torch.nn.Module, reduction_factor: int, retrain_embeddings: bool = False
 ) -> torch.nn.Module:
 
     # Adds basic adapters to a given model
@@ -52,49 +53,50 @@ def add_adapters(
 
         if model.fused_residuals == False:
 
-            def forward_adapter(self, x):
-                x = x + self.adapter_attn(self.attn(self.ln1(x)))
+            def forward_adapter(self, x: torch.Tensor,use_cache: bool = False,layer_past: Tuple[torch.Tensor, torch.Tensor] = None,) -> Tuple[torch.Tensor, torch.Tensor]:
+                attn_out = self.attn(self.ln1(x), use_cache, layer_past)
+                x = x + self.adapter_attn(attn_out[0])
                 x = x + self.adapter_ff(self.mlp(self.ln2(x)))
-                return x
+
+                return x, attn_out[1]
 
         else:
 
-            def forward_adapter(self, x):
-                x = (
-                    x
-                    + self.adapter_ff(self.mlp(self.ln1(x)))
-                    + self.adapter_attn(self.attn(self.ln1(x)))
-                )
-                return x
+            def forward_adapter(self, x: torch.Tensor,use_cache: bool = False,layer_past: Tuple[torch.Tensor, torch.Tensor] = None,) -> Tuple[torch.Tensor, torch.Tensor]:
+                mlp_out = self.mlp(self.ln1(x))
+                attn_out = self.attn(self.ln1(x), use_cache, layer_past)
+                x = x + self.adapter_ff(mlp_out) + self.adapter_attn(attn_out[0])
+                return x, attn_out[1]
 
         bound_method = forward_adapter.__get__(
             model.blocks[i], model.blocks[i].__class__
         )
         setattr(model.blocks[i], "forward", bound_method)
 
-    # Need to modify the LM head too
-    embedding_shape = model.wte.weight.shape
-    # Keep weights tied to embeddings
-    # lm_head_weight = copy.deepcopy(model.lm_head.weight)
+    if retrain_embeddings:
+        # Need to modify the LM head too
+        embedding_shape = model.wte.weight.shape
 
-    delattr(model, "lm_head")
+        delattr(model, "lm_head")
 
-    model.lm_head = nn.Linear(
-        in_features=embedding_shape[1],
-        out_features=embedding_shape[0],
-        bias=False,
-    )
-    model.lm_head.weight = model.wte.weight
+        model.lm_head = nn.Linear(
+            in_features=embedding_shape[1],
+            out_features=embedding_shape[0],
+            bias=False,
+        )
+        model.lm_head.weight = model.wte.weight
 
     return model
 
 
-def prepare_adapter_training(model: torch.nn.Module) -> torch.nn.Module:
+def prepare_adapter_training(model: torch.nn.Module, retrain_embeddings: bool = False) -> torch.nn.Module:
 
     # freezes all models params except for LN and adapter params. (Also adds new LN params?)
 
     for key, value in model.named_parameters():
-        if "adapter" in key or "ln" in key or "wte" in key or "norm" in key:
+        if "adapter" in key or "ln" in key or "norm" in key:
+            value.requires_grad = True
+        elif "wte" in key and retrain_embeddings:
             value.requires_grad = True
         else:
             value.requires_grad = False
