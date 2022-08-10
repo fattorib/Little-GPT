@@ -121,20 +121,22 @@ class TextGenerator:
         top_p: float = None,
         typical_sampling: bool = None,
         tau: float = None,
+        repetition_penalty: float = 1.0, 
         device: str = "cpu",
     ) -> Tuple[str, str, List[float]]:
 
         output, step, logprobs = self.generate_tokens(
-            model,
-            prompt,
-            steps,
-            temperature,
-            top_k,
-            sample,
-            top_p,
-            typical_sampling,
-            tau,
-            device,
+            model=model,
+            prompt = prompt,
+            steps = steps,
+            temperature = temperature,
+            top_k = top_k,
+            sample = sample,
+            top_p = top_p,
+            typical_sampling = typical_sampling,
+            tau = tau,
+            repetition_penalty = repetition_penalty,
+            device = device,
         )
         full_gen, new_gen = self.token_to_text(prompt, output, step)
         return full_gen, new_gen, logprobs
@@ -162,6 +164,7 @@ class TextGenerator:
         top_p: float = 0.0,
         typical_sampling: bool = False,
         tau: float = 0.2,
+        repetition_penalty: float = 1.0, 
         sample: bool = True,
         device: str = "cpu",
     ) -> Tuple[torch.Tensor, int, List[float]]:
@@ -187,8 +190,9 @@ class TextGenerator:
 
         layer_past = None
 
-        for step in tqdm(range(steps)):
+        generated_tokens = []
 
+        for step in tqdm(range(steps)):
             with torch.autocast(device_type=device):
                 logits, layer_past = model(
                     x_cond, use_cache=True, past_states=layer_past
@@ -196,14 +200,20 @@ class TextGenerator:
 
             logits = logits[:, -1, :] / temperature
 
-            if top_p > 0.0:
+            for prev_gen_token in generated_tokens:
+                if logits[:, prev_gen_token] < 0:
+                    logits[:, prev_gen_token] *= repetition_penalty
+                else:
+                    logits[:, prev_gen_token] /= repetition_penalty
 
+            if top_p > 0.0:
                 logits = top_p_logits(logits, top_p=top_p)
 
             elif typical_sampling:
                 logits = typical_sampling_logits(logits, mass=tau)
             else:
                 logits = top_k_logits(logits, k=top_k)
+            
 
             probs = F.softmax(logits, dim=-1)
 
@@ -211,17 +221,21 @@ class TextGenerator:
             # probs[:, 50256] = 0
 
             if not sample:
-                out = torch.topk(probs, k=1)
-                x = torch.cat((x[:, :], out.indices), axis=1)
-                if out.item() == self.pad_token:
+                x_cond = torch.topk(probs, k=1).indices
+                x = torch.cat((x[:, :], x_cond), axis=1)
+                if x_cond.item() == self.pad_token:
                     return x[:, :], step
             else:
                 x_cond = torch.multinomial(probs, num_samples=1)
                 logprobs.append(torch.log(probs[:, x_cond]).item())
                 # If we hit end of text, return as-is
                 if x_cond.item() == self.pad_token:
-                    return x[:, :], step
+                    return x[:, :], step, logprobs
                 else:
                     x = torch.cat((x[:, :], x_cond), axis=1)
+
+                if x_cond.item() not in generated_tokens:
+                    generated_tokens.append(x_cond.item())
+
 
         return x, steps, logprobs
