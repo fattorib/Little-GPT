@@ -42,6 +42,7 @@ def main():
     assert args.model_size in ["127", "303", "354", "1B", "1B8bit"]
 
     if args.full_state:
+        assert args.model_size not in ["1B8bit"], "8 bit quantized model is for inference only"
         download_path = CHECKPOINT_MAP_COMPLETE[args.model_size]
         save_path = f"checkpoints/{args.model_size}_complete_state.pth.tar"
     else:
