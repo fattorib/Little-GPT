@@ -144,8 +144,5 @@ I have worked on this project for the last 7 months or so and at this stage I am
 
 - Create a much larger dataset (~50B to 100B tokens). While The Pile would be my starting point, I would also be interested in scraping my own smaller dataset to include. 
 
-- Train a larger model. I originally planned to train a model at around a 1B parameter size using DeepSpeed. However, due to issues with HF Accelerate and DeepSpeed checkpointing, I had to put that plan on hold for the reasons mentioned above. Using VMs from Vast.ai I previously estimated this would cost between $500 and $750 CAD without DeepSpeed; too much for me to spend right now :)
-
-- Use 8-bit optimizers. This is a pretty minor change, but something I wasn't aware of until much later in the project. 
 
 Thanks for reading!
