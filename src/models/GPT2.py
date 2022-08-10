@@ -389,9 +389,6 @@ class CausalSelfAttention(nn.Module):
 
             present = torch.stack((k, v))
 
-        # Need to grab these
-        seq_len_k, seq_len_q = k.size(-2), q.size(-2)
-
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
         att = att.masked_fill(self.mask[:, :, :T, :T] == 0, float("-inf"))
