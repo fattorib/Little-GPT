@@ -82,33 +82,6 @@ class FrozenBNBLinear(nn.Module):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.in_features}, {self.out_features})"
 
-
-# This might need to be updated for bnb stable embedding
-class FrozenBNBEmbedding(nn.Module):
-    def __init__(self, weight, absmax, code):
-        super().__init__()
-        self.num_embeddings, self.embedding_dim = weight.shape
-        self.register_buffer("weight", weight.requires_grad_(False))
-        self.register_buffer("absmax", absmax.requires_grad_(False))
-        self.register_buffer("code", code.requires_grad_(False))
-
-    def forward(self, x, **kwargs):
-        with torch.no_grad():
-            # note: both quantuized weights and input indices are *not* differentiable
-            weight_deq = dequantize_blockwise(
-                self.weight, absmax=self.absmax, code=self.code
-            )
-            return F.embedding(x, weight_deq, **kwargs)
-
-    @classmethod
-    def from_embedding(cls, embedding: nn.Embedding) -> "FrozenBNBEmbedding":
-        weights_int8, state = quantize_blockise_lowmemory(embedding.weight)
-        return cls(weights_int8, *state)
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.num_embeddings}, {self.embedding_dim})"
-
-
 class FrozenBNBStableEmbedding(nn.Module):
     def __init__(self, weight, absmax, code, ln_weight, ln_bias):
         super().__init__()

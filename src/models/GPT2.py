@@ -5,6 +5,7 @@ import copy
 import math
 import torch.nn.functional as F
 from typing import Union, Tuple, List
+from src.models.stableembedding import FrozenStableEmbedding
 
 try:
     from src.utils.dynamic_quantization import bnbfy_
@@ -507,11 +508,16 @@ class GPT2(nn.Module):
         """
 
         if use_bnb:
-            import bitsandbytes as bnb
-
-            self.wte = bnb.nn.StableEmbedding(
-                self.vocab_size, self.embedding_dim
-            )
+            try:
+                import bitsandbytes as bnb
+                self.wte = bnb.nn.StableEmbedding(
+                    self.vocab_size, self.embedding_dim
+                )
+            except Exception as e:
+                # inference only (for windows machines)
+                self.wte = FrozenStableEmbedding(
+                    self.vocab_size, self.embedding_dim
+                )
         else:
             self.wte = nn.Embedding(self.vocab_size, self.embedding_dim)
 
