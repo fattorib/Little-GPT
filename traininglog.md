@@ -92,11 +92,27 @@ Early on in my experimentation, on the same 21B token corpus, I also trained a 3
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) | WikiText (PPL) | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|---------------|---------------|----------------|------------|-----------------|------------------|-----------------|
+| GPT-303*   | 43.39%        | 15.89         | 28.57         | 65.2%     | 29.8%          | 49.3%           | 26B            |
 | GPT-354 (Mine)    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | -           | 21B             |
 | GPT-Neo 350M    | 47.27%        |  	13.876         | 22.5657         | 65.07%     | 32.16%         | 51.14%           | ~300B   |
 | GPT-3 350M    | 54.3%        |  	9.09         | 22.5657         | 70.2%     | 43.6%         | 52.1%           | 300B             |
 
 My 354M param model I trained was able to generate relatively coherent sounding text. I was pleasantly surprised by how well this model performed and was able to find the time & compute to train GPT-303* on WebText++. 
+
+## GPT-1B* Training Log
+
+(WIP) GPT-1B* is trained with the same setup with the following training changes:
+
+1. 8-bit optimizers from [bitsandbytes](https://github.com/facebookresearch/bitsandbytes)
+2. Staged Sequence Length Warmup from 128 to 512 (more details to come here)
+
+| Model        | LAMBADA (Acc) | LAMBADA (PPL) |   WikiText (PPL)  | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
+|--------------|:-------------:|:-------------:|:-----------------:|:----------:|:---------------:|:----------------:|:---------------:|
+| **GPT-1B\*** | 52.65         | 9.758         | 23.052 (1024 ctx) | 69.31%     | 33.36%          | 52.17%           | 26B             |
+| GPT-2 1.5B   | 51.21%        | 10.634        | 17.48 (1024 ctx)  | 70.78%     | 40.03%          | 59.40%           | -               |
+| GPT-Neo 1.3B | 57.23         | 7.498         | 13.10 (2048 ctx)  | 71.11%     | 38.66           | 55.01            | 300B            |
+
+(more to add here)
 
 ## More Benchmarks 
 

@@ -8,17 +8,17 @@ GPT* is a pair of transformer models based on GPT2-Small and GPT2-Medium with th
 
 ### Models & Hyperparameters 🛠️:
 
-| Hyperparameter      | Value (GPT-127*)           |Value (GPT-303*)           |
-|---------------------|----------------------------|----------------------------|
-| n_parameters        | 127M                       |303M                       |
-| n_layers            | 6                          |8                          |
-| d_model             | 1024                       |1536                       |
-| d_ff                | 4096                       |6144                       |
-| n_heads             | 8                          |8                          |
-| d_head              | 128                        |192                        |
-| n_vocab             | 50257 (GPT2 Tokenizer)     |50257 (GPT2 Tokenizer)     |
-| Positional Encoding | ALiBi                      |ALiBi                      |
-| n_ctx               | 512 Train / 1024 Inference |512 Train / 1024 Inference |
+| Hyperparameter      | Value (GPT-127*)           |Value (GPT-303*)           |Value (GPT-1B*)
+|---------------------|----------------------------|----------------------------|----------------------------|
+| n_parameters        | 127M                       |303M                       |1.009B                       |
+| n_layers            | 6                          |8                          |18                           |
+| d_model             | 1024                       |1536                       |2048                         |
+| d_ff                | 4096                       |6144                       |8192                         |
+| n_heads             | 8                          |8                          |8                            |
+| d_head              | 128                        |192                        |256                          |
+| n_vocab             | 50257 (GPT2 Tokenizer)     |50257 (GPT2 Tokenizer)     |50257 (GPT2 Tokenizer)       |
+| Positional Encoding | ALiBi                      |ALiBi                      |ALiBi                        |
+| n_ctx               | 512 Train / 1024 Inference |512 Train / 1024 Inference |Seq length warmup from 128 to 512 during training / 1024 Inference|
 
 ### Dataset 📚: 
 Both models were training for one epoch (roughly ~26B tokens) on a dataset consisting of: 
@@ -38,6 +38,9 @@ Benchmarks produced with [Language Model Evaluation Harness](https://github.com/
 | **GPT-303\***    | 43.39%        | 15.89         | 28.57         | 65.2%     | 29.8%          | 49.3%           | 26B            |
 | GPT-Neo 350M    | 47.27%        |  	13.876         | 22.5657         | 65.07%     | 32.16%         | 51.14%           | 300B            |
 | GPT-3 350M    | 54.3%        |  	9.09         | -         | 70.2%     | 43.6%         | 52.1%           | 300B            |
+| **GPT-1B\*** | 52.65         | 9.758         | 23.052 (1024 ctx) | 69.31%     | 33.36%          | 52.17%           | 26B             |
+| GPT-2 1.5B   | 51.21%        | 10.634        | 17.48 (1024 ctx)  | 70.78%     | 40.03%          | 59.40%           | -               |
+| GPT-Neo 1.3B | 57.23         | 7.498         | 13.10 (2048 ctx)  | 71.11%     | 38.66           | 55.01            | 300B            |
 
 I have also included extra benchmarks increasing the ALiBi context length in [```traininglog.md```](traininglog.md).
 
