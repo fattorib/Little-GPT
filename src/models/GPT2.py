@@ -570,8 +570,8 @@ class GPT2(nn.Module):
         if past_states is None:
             past_states = [None] * self.N
 
-        for block, past_states in zip(self.blocks, past_states):
-            x, layer_past = block(x, use_cache, past_states)
+        for block, past_state in zip(self.blocks, past_states):
+            x, layer_past = block(x, use_cache, past_state)
 
             present_states.append(layer_past)
 
