@@ -85,11 +85,15 @@ Download a model checkpoint (this downloads the 354M param model):
 python download_checkpoints.py --model-size 354
 ```
 
-Launch gradio app locally (this runs the model we just downloaded). *Options are base\*, medium\*, medium*:
+Launch gradio app locally (this runs the model we just downloaded). 
 ```
-# options are  base\*, medium\*, medium*, XL*
-python app.py --model-size medium
+# options are  "127", "303", "354", "1B",
+python app.py --model-size 127
 ```
+
+## Todo:
+- [ ] Extract 1B params from bitsandbytes layers for Windows support
+
 
 ## References:
 

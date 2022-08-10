@@ -45,13 +45,13 @@ generator = TextGenerator(seq_len=512, tokenizer=None)
 def model_creator(size: str) -> torch.nn.Module:
 
     save_paths = {
-        "base*": "checkpoints/127_weights.pth.tar",
-        "medium*": "checkpoints/303_weights.pth.tar",
-        "XL*": "checkpoints/1B_weights_8bit.pth.tar",
-        "medium": "checkpoints/354_weights.pth.tar",
+        "127": "checkpoints/127_weights.pth.tar",
+        "303": "checkpoints/303_weights.pth.tar",
+        "1B": "checkpoints/1B_weights_8bit.pth.tar",
+        "354": "checkpoints/354_weights.pth.tar",
     }
 
-    if "*" in size:
+    if size in ["127", "303", "1B"]:
 
         model = model_getter(
             size,
