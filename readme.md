@@ -36,11 +36,12 @@ Benchmarks produced with [Language Model Evaluation Harness](https://github.com/
 | GPT-Neo 125M | 37.36%        | 30.266        | 32.285         | 63.06%     | 28.67%          | 50.43%           | 300B            |
 | GPT-3 125M   | 42.7%         | 18.6          | -              | 65.07%     | 33.7%           | 52.0%            | 300B            |
 | **GPT-303\***    | 43.39%        | 15.89         | 28.57         | 65.2%     | 29.8%          | 49.3%           | 26B            |
+| GPT-354 (Mine)    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | -           | 21B             |
 | GPT-Neo 350M    | 47.27%        |  	13.876         | 22.5657         | 65.07%     | 32.16%         | 51.14%           | 300B            |
 | GPT-3 350M    | 54.3%        |  	9.09         | -         | 70.2%     | 43.6%         | 52.1%           | 300B            |
 | **GPT-1B\*** | 52.65         | 9.758         | 23.052 (1024 ctx) | 69.31%     | 33.36%          | 52.17%           | 26B             |
 | GPT-2 1.5B   | 51.21%        | 10.634        | 17.48 (1024 ctx)  | 70.78%     | 40.03%          | 59.40%           | -               |
-| GPT-Neo 1.3B | 57.23         | 7.498         | 13.10 (2048 ctx)  | 71.11%     | 38.66           | 55.01            | 300B            |
+| GPT-Neo 1.3B | 57.23         | 7.498         | 13.10 (2048 ctx)  | 71.11%     | 38.66%         | 55.01%           | 300B            |
 
 I have also included extra benchmarks increasing the ALiBi context length in [```traininglog.md```](traininglog.md).
 
@@ -56,6 +57,8 @@ The following checkpoints are available for download:
 - GPT-303* with optimizer states
 - GPT-303* without optimizer states
 - GPT-345M  without optimizer states (*unfortunately this was meant to be a throwaway model and as such, I deleted the optimizer states*)
+
+TODO: Update with 1B models
 
 To download a checkpoints, clone the repo and run: 
 ```
