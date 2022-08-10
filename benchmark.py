@@ -1,13 +1,14 @@
 """
 Just a benchmark script for evaluating Bits-Per-Byte,Bits-Per-Character, and 
-Perplexity-Per-Length for enwik8,text8, and WikiText2 respectively. All other
-benchmarks reported are computed using:
+Perplexity-Per-Length for enwik8,text8, and WikiText2 respectively. Handles all 
+my models + HF models. 
+
+All other benchmarks reported are computed using:
     https://github.com/EleutherAI/lm-evaluation-harness/
 """
 
 from transformers import GPT2TokenizerFast
 import argparse
-import torch
 from benchmark.benchmark_map import DATASET_MAP
 from benchmark.benchmark_metrics import METRIC_REGISTRY
 import pandas as pd
@@ -52,7 +53,6 @@ def main():
                 "base*": "checkpoints/127_weights.pth.tar",
                 "medium*": "checkpoints/303_weights.pth.tar",
                 "XL*": "checkpoints/1B_weights_8bit.pth.tar",
-                "medium": "checkpoints/354_weights.pth.tar",
             }
 
             model = model_getter(
