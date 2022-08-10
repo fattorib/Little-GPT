@@ -104,6 +104,7 @@ class ALiBi(nn.Module):
         block_size: int,
         resid_dropout: float,
         num_layers: int,
+        window_size: int = None,
     ):
         super().__init__()
         assert embedding_dim % num_head == 0
@@ -121,6 +122,7 @@ class ALiBi(nn.Module):
 
         self.n_head = num_head
         self.num_layers = num_layers
+        self.window_size = window_size
 
         self.register_buffer(
             "slopes", torch.Tensor(self.get_slopes(self.n_head))
@@ -153,6 +155,30 @@ class ALiBi(nn.Module):
                 + self.get_slopes(2 * closest_power_of_2)[0::2][
                     : n - closest_power_of_2
                 ]
+            )
+
+    def create_windowed_mask(self):
+        """
+        Option to add in windowed self attention from
+        `Do Transformers Need Deep Long-Range Memory? (Rae & Razavi, ACL 2020)`
+            <https://aclanthology.org/2020.acl-main.672/>
+
+        Must be initialized with:
+            model = my_model(*)
+            for block in model.blocks:
+                block.attn.create_windowed_mask()
+
+        """
+        if self.window_size is not None:
+            block_size = self.mask.size(-1)
+            del self.mask
+            self.register_buffer(
+                "mask",
+                torch.tril(
+                    torch.ones(block_size, block_size, dtype=torch.uint8).triu(
+                        -self.window_size
+                    )
+                ).view(1, 1, block_size, block_size),
             )
 
     def forward(
@@ -203,6 +229,17 @@ class ALiBi(nn.Module):
                 .to(x.device)
             )
 
+            if self.window_size is not None:
+                del self.mask
+                self.mask = (
+                    torch.tril(
+                        torch.ones(
+                            seq_len_k, seq_len_k, dtype=torch.uint8
+                        ).triu(-self.window_size)
+                    )
+                    .view(1, 1, seq_len_k, seq_len_k)
+                    .to(x.device)
+                )
             # Create ALiBi distance matrix
             a = -torch.tril(
                 torch.arange(seq_len_k).view(seq_len_k, 1).repeat(1, seq_len_k)
@@ -266,6 +303,7 @@ class CausalSelfAttention(nn.Module):
         block_size: int,
         resid_dropout: float,
         num_layers: int,
+        window_size: int = None,
     ) -> None:
         super().__init__()
         assert embedding_dim % num_head == 0
@@ -276,12 +314,15 @@ class CausalSelfAttention(nn.Module):
         self.attn_drop = nn.Dropout(resid_dropout)
         self.resid_drop = nn.Dropout(resid_dropout)
         self.fc_resid = nn.Linear(embedding_dim, embedding_dim)
+        self.window_size = window_size
+
         self.register_buffer(
             "mask",
             torch.tril(
                 torch.ones(block_size, block_size, dtype=torch.uint8)
             ).view(1, 1, block_size, block_size),
         )
+
         self.n_head = num_head
         self.num_layers = num_layers
 
@@ -290,6 +331,30 @@ class CausalSelfAttention(nn.Module):
         )
 
         self.apply(init_function_partial)
+
+    def create_windowed_mask(self):
+        """
+        Option to add in windowed self attention from
+        `Do Transformers Need Deep Long-Range Memory? (Rae & Razavi, ACL 2020)`
+            <https://aclanthology.org/2020.acl-main.672/>
+
+        Must be initialized with:
+            model = my_model(*)
+            for block in model.blocks:
+                block.attn.create_windowed_mask()
+
+        """
+        if self.window_size is not None:
+            block_size = self.mask.size(-1)
+            del self.mask
+            self.register_buffer(
+                "mask",
+                torch.tril(
+                    torch.ones(block_size, block_size, dtype=torch.uint8).triu(
+                        -self.window_size
+                    )
+                ).view(1, 1, block_size, block_size),
+            )
 
     def forward(
         self,
@@ -358,6 +423,7 @@ class GPT2Block(nn.Module):
         num_layers: int,
         fused_residuals: bool,
         use_alibi: bool,
+        window_size: int = None,
     ) -> None:
         super().__init__()
         self.ln1 = nn.LayerNorm(embedding_dim)
@@ -368,12 +434,22 @@ class GPT2Block(nn.Module):
 
         if use_alibi:
             self.attn = ALiBi(
-                embedding_dim, num_head, block_size, resid_dropout, num_layers
+                embedding_dim,
+                num_head,
+                block_size,
+                resid_dropout,
+                num_layers,
+                window_size,
             )
 
         else:
             self.attn = CausalSelfAttention(
-                embedding_dim, num_head, block_size, resid_dropout, num_layers
+                embedding_dim,
+                num_head,
+                block_size,
+                resid_dropout,
+                num_layers,
+                window_size,
             )
 
         self.mlp = MLPBlock(
@@ -415,6 +491,7 @@ class GPT2(nn.Module):
         use_alibi: bool = False,
         use_bnb=False,
         quantized_state=False,
+        window_size: List[int] = None,
     ):
         super().__init__()
         self.num_ctx = num_ctx
@@ -457,9 +534,12 @@ class GPT2(nn.Module):
                         num_layers=N,
                         fused_residuals=fused_residuals,
                         use_alibi=self.use_alibi,
+                        window_size=window_size[i]
+                        if window_size is not None
+                        else None,
                     )
                 )
-                for _ in range(self.N)
+                for i in range(self.N)
             ]
         )
 
