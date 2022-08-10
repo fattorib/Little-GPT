@@ -21,7 +21,7 @@ def parse():
 CHECKPOINT_MAP_COMPLETE = {
     "127": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/127_complete_state.pth.tar",
     "303": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/303_complete_state.pth.tar",
-    "1B": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/1B_complete_state.pth.tar"
+    "1B": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/1B_complete_state.pth.tar",
 }
 
 
@@ -29,7 +29,7 @@ CHECKPOINT_MAP_INFERENCE = {
     "127": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/127_model_only.pth.tar",
     "303": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/303_model_only.pth.tar",
     "354": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/GPT2_345.pth.tar",
-    "1B": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/1B_weights_8bit.pth.tar"
+    "1B": "https://bfattoripublic.s3.ca-central-1.amazonaws.com/models/1B_weights_8bit.pth.tar",
 }
 
 

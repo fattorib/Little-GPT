@@ -56,5 +56,5 @@ DESCRIPTION_MAP = {
     "base*": description_star,
     "medium*": description_star,
     "medium": description_354,
-    "XL*": description_1b
+    "XL*": description_1b,
 }

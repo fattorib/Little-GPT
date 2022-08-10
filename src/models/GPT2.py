@@ -9,7 +9,9 @@ from typing import Union, Tuple, List
 try:
     from src.utils.dynamic_quantization import bnbfy_
 except Exception as e:
-    print('Bitsandbytes not installed. Unable to perform inference with 8bit quantization')
+    print(
+        "Bitsandbytes not installed. Unable to perform inference with 8bit quantization"
+    )
 
 """
 Module class for GPT2. Follows paper specifications wherever possible.
