@@ -39,6 +39,13 @@ DEVICE = "cpu"
 if torch.cuda.is_available():
     DEVICE = "cuda"
 
+BNB_FLAG = False 
+try: 
+    import bitsandbytes as bnb
+    BNB_FLAG = True
+except Exception as e:
+    pass
+
 generator = TextGenerator(seq_len=512, tokenizer=None)
 
 
@@ -47,7 +54,7 @@ def model_creator(size: str) -> torch.nn.Module:
     save_paths = {
         "base*": "checkpoints/127_weights.pth.tar",
         "medium*": "checkpoints/303_weights.pth.tar",
-        "XL*": "checkpoints/1B_weights_8bit.pth.tar",
+        "XL*": "checkpoints/1B_weights_8bit.pth.tar" if BNB_FLAG else "checkpoints/1B_weights_noBNB.pth.tar",
         "medium": "checkpoints/354_weights.pth.tar",
     }
 

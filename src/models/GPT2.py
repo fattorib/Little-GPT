@@ -508,15 +508,18 @@ class GPT2(nn.Module):
         """
 
         if use_bnb:
+            BNB_FLAG = None
             try:
                 import bitsandbytes as bnb
                 self.wte = bnb.nn.StableEmbedding(
                     self.vocab_size, self.embedding_dim
                 )
+                BNB_FLAG = True
             except Exception as e:
+                BNB_FLAG = False
                 # inference only (for windows machines)
                 self.wte = FrozenStableEmbedding(
-                    self.vocab_size, self.embedding_dim
+                    weight = torch.nn.Parameter(torch.empty((self.vocab_size, self.embedding_dim))), ln_weight=None, ln_bias=None
                 )
         else:
             self.wte = nn.Embedding(self.vocab_size, self.embedding_dim)
@@ -560,7 +563,8 @@ class GPT2(nn.Module):
 
         # Quantize model
         if quantized_state:
-            bnbfy_(self)
+            if BNB_FLAG:
+                bnbfy_(self)
 
     def generate(
         self, context: torch.Tensor, max_length: int, sample: bool = False
