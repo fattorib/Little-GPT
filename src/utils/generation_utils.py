@@ -193,10 +193,16 @@ class TextGenerator:
         generated_tokens = []
 
         for step in tqdm(range(steps)):
-            with torch.autocast(device_type=device):
+            if device != 'cpu':
+                # autocast hangs with CPU 
+                with torch.autocast(device_type=device):
+                    logits, layer_past = model(
+                        x_cond, use_cache=True, past_states=layer_past
+                    )
+            else:
                 logits, layer_past = model(
-                    x_cond, use_cache=True, past_states=layer_past
-                )
+                        x_cond, use_cache=True, past_states=layer_past
+                    )
 
             logits = logits[:, -1, :] / temperature
 
