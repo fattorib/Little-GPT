@@ -37,7 +37,9 @@ class BottleneckAdapter(nn.Module):
 
 
 def add_adapters(
-    model: torch.nn.Module, reduction_factor: int, retrain_embeddings: bool = False
+    model: torch.nn.Module,
+    reduction_factor: int,
+    retrain_embeddings: bool = False,
 ) -> torch.nn.Module:
 
     # Adds basic adapters to a given model
@@ -53,7 +55,12 @@ def add_adapters(
 
         if model.fused_residuals == False:
 
-            def forward_adapter(self, x: torch.Tensor,use_cache: bool = False,layer_past: Tuple[torch.Tensor, torch.Tensor] = None,) -> Tuple[torch.Tensor, torch.Tensor]:
+            def forward_adapter(
+                self,
+                x: torch.Tensor,
+                use_cache: bool = False,
+                layer_past: Tuple[torch.Tensor, torch.Tensor] = None,
+            ) -> Tuple[torch.Tensor, torch.Tensor]:
                 attn_out = self.attn(self.ln1(x), use_cache, layer_past)
                 x = x + self.adapter_attn(attn_out[0])
                 x = x + self.adapter_ff(self.mlp(self.ln2(x)))
@@ -62,10 +69,19 @@ def add_adapters(
 
         else:
 
-            def forward_adapter(self, x: torch.Tensor,use_cache: bool = False,layer_past: Tuple[torch.Tensor, torch.Tensor] = None,) -> Tuple[torch.Tensor, torch.Tensor]:
+            def forward_adapter(
+                self,
+                x: torch.Tensor,
+                use_cache: bool = False,
+                layer_past: Tuple[torch.Tensor, torch.Tensor] = None,
+            ) -> Tuple[torch.Tensor, torch.Tensor]:
                 mlp_out = self.mlp(self.ln1(x))
                 attn_out = self.attn(self.ln1(x), use_cache, layer_past)
-                x = x + self.adapter_ff(mlp_out) + self.adapter_attn(attn_out[0])
+                x = (
+                    x
+                    + self.adapter_ff(mlp_out)
+                    + self.adapter_attn(attn_out[0])
+                )
                 return x, attn_out[1]
 
         bound_method = forward_adapter.__get__(
@@ -89,7 +105,9 @@ def add_adapters(
     return model
 
 
-def prepare_adapter_training(model: torch.nn.Module, retrain_embeddings: bool = False) -> torch.nn.Module:
+def prepare_adapter_training(
+    model: torch.nn.Module, retrain_embeddings: bool = False
+) -> torch.nn.Module:
 
     # freezes all models params except for LN and adapter params. (Also adds new LN params?)
 

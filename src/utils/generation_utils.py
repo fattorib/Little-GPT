@@ -121,22 +121,22 @@ class TextGenerator:
         top_p: float = None,
         typical_sampling: bool = None,
         tau: float = None,
-        repetition_penalty: float = 1.0, 
+        repetition_penalty: float = 1.0,
         device: str = "cpu",
     ) -> Tuple[str, str, List[float]]:
 
         output, step, logprobs = self.generate_tokens(
             model=model,
-            prompt = prompt,
-            steps = steps,
-            temperature = temperature,
-            top_k = top_k,
-            sample = sample,
-            top_p = top_p,
-            typical_sampling = typical_sampling,
-            tau = tau,
-            repetition_penalty = repetition_penalty,
-            device = device,
+            prompt=prompt,
+            steps=steps,
+            temperature=temperature,
+            top_k=top_k,
+            sample=sample,
+            top_p=top_p,
+            typical_sampling=typical_sampling,
+            tau=tau,
+            repetition_penalty=repetition_penalty,
+            device=device,
         )
         full_gen, new_gen = self.token_to_text(prompt, output, step)
         return full_gen, new_gen, logprobs
@@ -164,7 +164,7 @@ class TextGenerator:
         top_p: float = 0.0,
         typical_sampling: bool = False,
         tau: float = 0.2,
-        repetition_penalty: float = 1.0, 
+        repetition_penalty: float = 1.0,
         sample: bool = True,
         device: str = "cpu",
     ) -> Tuple[torch.Tensor, int, List[float]]:
@@ -213,7 +213,6 @@ class TextGenerator:
                 logits = typical_sampling_logits(logits, mass=tau)
             else:
                 logits = top_k_logits(logits, k=top_k)
-            
 
             probs = F.softmax(logits, dim=-1)
 
@@ -236,6 +235,5 @@ class TextGenerator:
 
                 if x_cond.item() not in generated_tokens:
                     generated_tokens.append(x_cond.item())
-
 
         return x, steps, logprobs

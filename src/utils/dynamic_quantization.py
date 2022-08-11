@@ -82,6 +82,7 @@ class FrozenBNBLinear(nn.Module):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.in_features}, {self.out_features})"
 
+
 class FrozenBNBStableEmbedding(nn.Module):
     def __init__(self, weight, absmax, code, ln_weight, ln_bias):
         super().__init__()

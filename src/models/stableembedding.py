@@ -1,6 +1,7 @@
-import torch 
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 
 class FrozenStableEmbedding(nn.Module):
     def __init__(self, weight, ln_weight, ln_bias):
@@ -8,10 +9,18 @@ class FrozenStableEmbedding(nn.Module):
         self.num_embeddings, self.embedding_dim = weight.shape
         self.register_buffer("weight", weight.requires_grad_(False))
         if ln_weight is None:
-            ln_weight = torch.nn.Parameter(torch.empty([self.embedding_dim],))
+            ln_weight = torch.nn.Parameter(
+                torch.empty(
+                    [self.embedding_dim],
+                )
+            )
         if ln_bias is None:
-            ln_bias = torch.nn.Parameter(torch.empty([self.embedding_dim],))
-            
+            ln_bias = torch.nn.Parameter(
+                torch.empty(
+                    [self.embedding_dim],
+                )
+            )
+
         self.register_buffer("ln_weight", ln_weight.requires_grad_(False))
         self.register_buffer("ln_bias", ln_bias.requires_grad_(False))
 

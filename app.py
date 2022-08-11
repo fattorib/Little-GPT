@@ -39,9 +39,10 @@ DEVICE = "cpu"
 if torch.cuda.is_available():
     DEVICE = "cuda"
 
-BNB_FLAG = False 
-try: 
+BNB_FLAG = False
+try:
     import bitsandbytes as bnb
+
     BNB_FLAG = True
 except Exception as e:
     pass
@@ -54,7 +55,9 @@ def model_creator(size: str) -> torch.nn.Module:
     save_paths = {
         "base*": "checkpoints/127_weights.pth.tar",
         "medium*": "checkpoints/303_weights.pth.tar",
-        "XL*": "checkpoints/1B_weights_8bit.pth.tar" if BNB_FLAG else "checkpoints/1B_weights_noBNB.pth.tar",
+        "XL*": "checkpoints/1B_weights_8bit.pth.tar"
+        if BNB_FLAG
+        else "checkpoints/1B_weights_noBNB.pth.tar",
         "medium": "checkpoints/354_weights.pth.tar",
     }
 
@@ -89,7 +92,14 @@ def model_creator(size: str) -> torch.nn.Module:
 
 
 def generate_text(
-    prompt, steps, temperature, top_k, top_p, tau, repetition_penalty, sampling_choice
+    prompt,
+    steps,
+    temperature,
+    top_k,
+    top_p,
+    tau,
+    repetition_penalty,
+    sampling_choice,
 ):
     if sampling_choice == "Top-k":
         top_p = 0.0
@@ -120,7 +130,7 @@ def generate_text(
         top_p=top_p,
         typical_sampling=typical_sampling,
         tau=tau,
-        repetition_penalty = repetition_penalty,
+        repetition_penalty=repetition_penalty,
         device=DEVICE,
     )
 

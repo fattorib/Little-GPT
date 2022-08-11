@@ -511,6 +511,7 @@ class GPT2(nn.Module):
             BNB_FLAG = None
             try:
                 import bitsandbytes as bnb
+
                 self.wte = bnb.nn.StableEmbedding(
                     self.vocab_size, self.embedding_dim
                 )
@@ -519,7 +520,11 @@ class GPT2(nn.Module):
                 BNB_FLAG = False
                 # inference only (for windows machines)
                 self.wte = FrozenStableEmbedding(
-                    weight = torch.nn.Parameter(torch.empty((self.vocab_size, self.embedding_dim))), ln_weight=None, ln_bias=None
+                    weight=torch.nn.Parameter(
+                        torch.empty((self.vocab_size, self.embedding_dim))
+                    ),
+                    ln_weight=None,
+                    ln_bias=None,
                 )
         else:
             self.wte = nn.Embedding(self.vocab_size, self.embedding_dim)
