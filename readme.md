@@ -1,6 +1,6 @@
 # GPT*
 
-GPT* is a pair of transformer models based on GPT2-Small and GPT2-Medium with the following architecture modifications to speed up training and inference:
+GPT* is a collection of transformer models based on GPT2-Small, GPT2-Medium, and GPT2-XL with the following architecture modifications to speed up training and inference:
 
 1. Parallel residual connections (as introduced in [GPT-J](https://github.com/kingoflolz/mesh-transformer-jax))
 2. Increasing the dimension of each attention head (as introduced in [GPT-J](https://github.com/kingoflolz/mesh-transformer-jax)) 
@@ -18,7 +18,7 @@ GPT* is a pair of transformer models based on GPT2-Small and GPT2-Medium with th
 | d_head              | 128                        |192                        |256                          |
 | n_vocab             | 50257 (GPT2 Tokenizer)     |50257 (GPT2 Tokenizer)     |50257 (GPT2 Tokenizer)       |
 | Positional Encoding | ALiBi                      |ALiBi                      |ALiBi                        |
-| n_ctx               | 512 Train / 1024 Inference |512 Train / 1024 Inference |Seq length warmup from 128 to 512 during training / 1024 Inference|
+| n_ctx               | 512 Train / 1024 Inference |512 Train / 1024 Inference |512 Train / 1024 InferenceInference|
 
 ### Dataset 📚: 
 Both models were training for one epoch (roughly ~26B tokens) on a dataset consisting of: 
@@ -87,13 +87,9 @@ python download_checkpoints.py --model-size 354
 
 Launch gradio app locally (this runs the model we just downloaded). 
 ```
-# options are  "127", "303", "354", "1B",
+# options are  "base*", "medium*", "medium", "XL*",
 python app.py --model-size 127
 ```
-
-## Todo:
-- [ ] Extract 1B params from bitsandbytes layers for Windows support
-
 
 ## References:
 
