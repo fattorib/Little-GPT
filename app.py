@@ -94,7 +94,7 @@ def generate_text(
 
     generated_text, new_gen, _ = generator.generate_text_from_prompt(
         model=model,
-        prompt=text_standardize(prompt),
+        prompt=prompt,
         steps=int(steps),
         temperature=temperature,
         top_k=top_k,
