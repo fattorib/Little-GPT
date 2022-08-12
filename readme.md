@@ -18,7 +18,7 @@ GPT* is a collection of transformer models based on GPT2-Small, GPT2-Medium, and
 | d_head              | 128                        |192                        |256                          |
 | n_vocab             | 50257 (GPT2 Tokenizer)     |50257 (GPT2 Tokenizer)     |50257 (GPT2 Tokenizer)       |
 | Positional Encoding | ALiBi                      |ALiBi                      |ALiBi                        |
-| n_ctx               | 512 Train / 1024 Inference |512 Train / 1024 Inference |512 Train / 1024 InferenceInference|
+| n_ctx               | 512 Train / 1024 Inference |512 Train / 1024 Inference |512 Train / 1024 Inference|
 
 ### Dataset 📚: 
 Both models were training for one epoch (roughly ~26B tokens) on a dataset consisting of: 
