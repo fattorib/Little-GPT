@@ -72,7 +72,7 @@ For GPT-1B8, the peak learning rate was decreased to 2e-4 and the sequence lengt
 
 GPT-127* training was conducted on a VM with 4 RTX A5000s for a total of 248 GPU hours with [HuggingFace Accelerate](https://github.com/huggingface/accelerate) for the distributed training. GPT-303* training was conducted on a VM with 4 RTX 3090s using the same codebase for a total of 412 GPU hours. Overall, this made distributed training very easy with the caveat that DeepSpeed training was not possible. While the HuggingFace team is working to add in proper support for DeepSpeed, at the time of training, I ran into too many issues, especially with saving and resuming model and optimizer checkpoints, to feel comfortable starting a long (and expensive) training job just for it to error out with no way to resume my progress.  
 
-GPT-1B* was trained on an 8x A100 server for a total of 10008 GPU hours. 
+GPT-1B* was trained on an 8x A100 server for a total of 1008 GPU hours. 
 
 # Reference Models
 
