@@ -52,7 +52,7 @@ Wherever possible, I tried follow training heuristics from other similar-sized m
 
 *Given that I was training with a sequence length of 512, this corresponds to a total batch size of 1024 samples.*
 
-The full list of training hyperparameters is as follows:
+The full list of training hyperparameters for GPT-127* are as follows:
 | Hyperparameter     | Value |
 |--------------------|-------|
 | Batch Size         | 1024  |
@@ -60,13 +60,19 @@ The full list of training hyperparameters is as follows:
 | Warmup Steps       | 4000  |
 | Total Steps        | 51000 |
 | Weight Decay       | 0.1   |
-| Min Learning Rate  | 6e-5  |
-| Min Learning Rate  | 6e-4  |
+| Max Learning Rate  | 6e-4  |
 | Initial LR         | 0     |
 
-The learning rate schedule follow [Cosine Annealing](https://arxiv.org/abs/1608.03983v5) with a warmup of 4000 steps and a decay to 10% of the original learning rate which was held constant for the final 10% of the training tokens. 
 
-GPT-127* training was conducted on a VM with 4 RTX A5000s for a total of 248 GPU Hours with [HuggingFace Accelerate](https://github.com/huggingface/accelerate) for the distributed training. GPT-303* training was conducted on a VM with 4 RTX 3090s using the same codebase for a total of 412 GPU HOURS. Overall, this made distributed training very easy with the caveat that DeepSpeed training was not possible. While the HuggingFace team is working to add in proper support for DeepSpeed, at the time of training, I ran into too many issues, especially with saving and resuming model and optimizer checkpoints, to feel comfortable starting a long (and expensive) training job just for it to error out with no way to resume my progress.  
+The learning rate schedule follows [Cosine Annealing](https://arxiv.org/abs/1608.03983v5) with a warmup of 4000 steps and a decay to 10% of the original learning rate which was held constant for the final 10% of the training tokens. 
+
+For GPT-303* the only deviation from the above hyperparams is the learning rate which was decreased for 6e-4 to 3e-4. 
+
+For GPT-1B8, the peak learning rate was decreased to 2e-4 and the sequence length was increased from 128 to 512 over the first 30% of training. 
+
+GPT-127* training was conducted on a VM with 4 RTX A5000s for a total of 248 GPU hours with [HuggingFace Accelerate](https://github.com/huggingface/accelerate) for the distributed training. GPT-303* training was conducted on a VM with 4 RTX 3090s using the same codebase for a total of 412 GPU hours. Overall, this made distributed training very easy with the caveat that DeepSpeed training was not possible. While the HuggingFace team is working to add in proper support for DeepSpeed, at the time of training, I ran into too many issues, especially with saving and resuming model and optimizer checkpoints, to feel comfortable starting a long (and expensive) training job just for it to error out with no way to resume my progress.  
+
+GPT-1B* was trained on an 8x A100 server for a total of 10008 GPU hours. 
 
 # Reference Models
 
@@ -101,10 +107,10 @@ My 354M param model I trained was able to generate relatively coherent sounding 
 
 ## GPT-1B* Training Log
 
-(WIP) GPT-1B* is trained with the same setup with the following training changes:
+GPT-1B* is trained with the same setup with the following training changes:
 
 1. 8-bit optimizers from [bitsandbytes](https://github.com/facebookresearch/bitsandbytes)
-2. Staged Sequence Length Warmup from 128 to 512. Over the first 30% steps of training (15000 steps) the train sequence length was warmed up from 128 to 512 in stages of 3750 steps. The sequence length progression was (128,192,256,384,512).
+2. Staged Sequence Length Warmup from 128 to 512. Over the first 30% of training steps (~15000 steps) the train sequence length was warmed up from 128 to 512 in stages of length 3750 steps. The sequence length progression was (128,192,256,384,512).
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) |   WikiText (PPL)  | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|:-------------:|:-------------:|:-----------------:|:----------:|:---------------:|:----------------:|:---------------:|
@@ -112,7 +118,7 @@ My 354M param model I trained was able to generate relatively coherent sounding 
 | GPT-2 1.5B   | 51.21%        | 10.634        | 17.48 (1024 ctx)  | 70.78%     | 40.03%          | 59.40%           | -               |
 | GPT-Neo 1.3B | 57.23         | 7.498         | 13.10 (2048 ctx)  | 71.11%     | 38.66%         | 55.01%           | 300B            |
 
-(more to add here)
+
 
 ## More Benchmarks 
 
