@@ -2,7 +2,6 @@ import gradio as gr
 import torch
 from src.models.GPT2 import model_getter
 from src.utils.generation_utils import TextGenerator
-import re
 import argparse
 
 
@@ -13,26 +12,6 @@ def parse():
     parser.add_argument("--bit-quantize", default=False, action="store_true")
     args = parser.parse_args()
     return args
-
-
-def text_standardize(text):
-    """
-    from GPT1 repo. Standard text cleaning
-    """
-    text = text.replace("—", "-")
-    text = text.replace("–", "-")
-    text = text.replace("―", "-")
-    text = text.replace("…", "...")
-    text = text.replace("´", "'")
-    text = re.sub(
-        """(-+|~+|!+|"+|;+|\?+|\++|,+|\)+|\(+|\\+|\/+|\*+|\[+|\]+|}+|{+|\|+|_+)""",
-        r" \1 ",
-        text,
-    )
-    text = re.sub("\s*\n\s*", " \n ", text)
-    text = re.sub("\s*\t\s*", " ", text)
-    text = re.sub("[^\S\n]+", " ", text)
-    return text.strip()
 
 
 DEVICE = "cpu"
@@ -102,35 +81,27 @@ def generate_text(
     sampling_choice,
 ):
     if sampling_choice == "Top-k":
-        top_p = 0.0
-        typical_sampling = False
-        sample = True
+        sampling_method = "topk"
 
     elif sampling_choice == "Nucleus":
-        typical_sampling = False
-        sample = True
+        sampling_method = "nucleus"
 
     elif sampling_choice == "Typical":
-        typical_sampling = True
-        sample = True
+        sampling_method = "typical"
 
     elif sampling_choice == "Greedy":
-        top_p = 0.0
-        typical_sampling = False
-        top_k = 1
-        sample = False
+        sampling_method = "greedy"
 
     generated_text, new_gen, _ = generator.generate_text_from_prompt(
         model=model,
         prompt=text_standardize(prompt),
         steps=int(steps),
         temperature=temperature,
-        sample=sample,
         top_k=top_k,
         top_p=top_p,
-        typical_sampling=typical_sampling,
         tau=tau,
         repetition_penalty=repetition_penalty,
+        sampling_method=sampling_method,
         device=DEVICE,
     )
 

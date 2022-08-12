@@ -13,6 +13,27 @@ from tqdm import tqdm
 from transformers import GPT2Tokenizer
 from tokenizers import Tokenizer
 from typing import Tuple, List
+import re
+
+
+def text_standardize(text):
+    """
+    from GPT1 repo. Standard text cleaning
+    """
+    text = text.replace("—", "-")
+    text = text.replace("–", "-")
+    text = text.replace("―", "-")
+    text = text.replace("…", "...")
+    text = text.replace("´", "'")
+    text = re.sub(
+        """(-+|~+|!+|"+|;+|\?+|\++|,+|\)+|\(+|\\+|\/+|\*+|\[+|\]+|}+|{+|\|+|_+)""",
+        r" \1 ",
+        text,
+    )
+    text = re.sub("\s*\n\s*", " \n ", text)
+    text = re.sub("\s*\t\s*", " ", text)
+    text = re.sub("[^\S\n]+", " ", text)
+    return text.strip()
 
 
 def top_k_logits(logits: torch.Tensor, k: int) -> torch.Tensor:
@@ -116,26 +137,24 @@ class TextGenerator:
         prompt: str,
         steps: int,
         temperature: float,
-        sample: bool = True,
         top_k: int = None,
         top_p: float = None,
-        typical_sampling: bool = None,
         tau: float = None,
         repetition_penalty: float = 1.0,
+        sampling_method: str = None,
         device: str = "cpu",
     ) -> Tuple[str, str, List[float]]:
 
         output, step, logprobs = self.generate_tokens(
             model=model,
-            prompt=prompt,
+            prompt=text_standardize(prompt),
             steps=steps,
             temperature=temperature,
             top_k=top_k,
-            sample=sample,
             top_p=top_p,
-            typical_sampling=typical_sampling,
             tau=tau,
             repetition_penalty=repetition_penalty,
+            sampling_method=sampling_method,
             device=device,
         )
         full_gen, new_gen = self.token_to_text(prompt, output, step)
@@ -162,12 +181,12 @@ class TextGenerator:
         temperature: float,
         top_k: int,
         top_p: float = 0.0,
-        typical_sampling: bool = False,
         tau: float = 0.2,
         repetition_penalty: float = 1.0,
-        sample: bool = True,
+        sampling_method: List[str] = None,
         device: str = "cpu",
     ) -> Tuple[torch.Tensor, int, List[float]]:
+
         model.eval()
         logprobs = []
 
@@ -180,11 +199,8 @@ class TextGenerator:
         x = tokens.view(1, -1)
 
         num_token = self.seq_len
-
         if x.shape[1] > num_token:
-
             x_cond = x[:, -num_token:]
-
         else:
             x_cond = x
 
@@ -193,16 +209,16 @@ class TextGenerator:
         generated_tokens = []
 
         for step in tqdm(range(steps)):
-            if device != 'cpu':
-                # autocast hangs with CPU 
+            if device != "cpu":
+                # autocast hangs with my CPU?
                 with torch.autocast(device_type=device):
                     logits, layer_past = model(
                         x_cond, use_cache=True, past_states=layer_past
                     )
             else:
                 logits, layer_past = model(
-                        x_cond, use_cache=True, past_states=layer_past
-                    )
+                    x_cond, use_cache=True, past_states=layer_past
+                )
 
             logits = logits[:, -1, :] / temperature
 
@@ -212,12 +228,13 @@ class TextGenerator:
                 else:
                     logits[:, prev_gen_token] /= repetition_penalty
 
-            if top_p > 0.0:
+            if sampling_method == "nucleus":
                 logits = top_p_logits(logits, top_p=top_p)
 
-            elif typical_sampling:
+            elif sampling_method == "typical":
                 logits = typical_sampling_logits(logits, mass=tau)
-            else:
+
+            elif sampling_method == "topk":
                 logits = top_k_logits(logits, k=top_k)
 
             probs = F.softmax(logits, dim=-1)
@@ -225,7 +242,7 @@ class TextGenerator:
             # This just sets the prob for <|endoftext|> to 0
             # probs[:, 50256] = 0
 
-            if not sample:
+            if sampling_method == "greedy":
                 x_cond = torch.topk(probs, k=1).indices
                 x = torch.cat((x[:, :], x_cond), axis=1)
                 if x_cond.item() == self.pad_token:
