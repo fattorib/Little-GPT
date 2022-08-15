@@ -21,8 +21,8 @@ The following text generation methods are supported:
 
 ### Parameters ⚙️:
 Some good text generation parameters are:
-- Nucleus: Temprature: 0.7, P: 0.96, Rep Penalty: 1.2, 
-- Nucleus: Temprature: 1.0, P: 0.5, Rep Penalty: 1.2, 
+- Nucleus: Temprature: 0.7, p: 0.96, Rep. Penalty: 1.2, 
+- Nucleus: Temprature: 1.0, p: 0.5, Rep. Penalty: 1.2, 
 """
 
 description_354 = """GPT-354M is a transformer model based on GPT2-Medium. While it was originally trained as a small benchmark model for the GPT-* models, it is reasonably good at producing coherent text!
@@ -39,8 +39,8 @@ The following text generation methods are supported:
 
 ### Parameters ⚙️:
 Some good text generation parameters are:
-- Nucleus: Temprature: 0.7, P: 0.96, Rep Penalty: 1.2, 
-- Nucleus: Temprature: 1.0, P: 0.5, Rep Penalty: 1.2, 
+- Nucleus: Temprature: 0.7, p: 0.96, Rep. Penalty: 1.2, 
+- Nucleus: Temprature: 1.0, p: 0.5, Rep. Penalty: 1.2, 
 """
 
 description_1b = """GPT-1B* is a 1 billion parameter transformer model with the following architecture modifications to speed up training and inference:
@@ -62,8 +62,8 @@ The following text generation methods are supported:
 
 ### Parameters ⚙️:
 Good starting text generation parameters:
-- Nucleus: Temprature: 0.7, P: 0.96, Rep Penalty: 1.2
-- Nucleus: Temprature: 1.0, P: 0.5, Rep Penalty: 1.2, 
+- Nucleus: Temprature: 0.7, p: 0.96, Rep. Penalty: 1.2
+- Nucleus: Temprature: 1.0, p: 0.5, Rep. Penalty: 1.2, 
 """
 
 
