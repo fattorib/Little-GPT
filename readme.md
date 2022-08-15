@@ -88,7 +88,7 @@ python download_checkpoints.py --model-size 354
 Launch gradio app locally (this runs the model we just downloaded). 
 ```
 # options are  "base*", "medium*", "medium", "XL*",
-python app.py --model-size 127
+python app.py --model-size medium*
 ```
 
 ## References:
