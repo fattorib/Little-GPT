@@ -15,8 +15,8 @@ def parse():
 
 
 DEVICE = "cpu"
-if torch.cuda.is_available():
-    DEVICE = "cuda"
+# if torch.cuda.is_available():
+#     DEVICE = "cuda"
 
 BNB_FLAG = False
 try:
@@ -92,7 +92,7 @@ def generate_text(
     elif sampling_choice == "Greedy":
         sampling_method = "greedy"
 
-    generated_text, new_gen, _ = generator.generate_text_from_prompt(
+    generated_text, new_gen, logprobs = generator.generate_text_from_prompt(
         model=model,
         prompt=prompt,
         steps=int(steps),
