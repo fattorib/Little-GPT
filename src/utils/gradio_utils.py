@@ -19,6 +19,7 @@ The following text generation methods are supported:
 * Typical Sampling
 * Greedy Sampling
 
+### Parameters ⚙️:
 Some good text generation parameters are:
 - Nucleus: Temprature: 0.7, P: 0.96, Rep Penalty: 1.2, 
 - Nucleus: Temprature: 1.0, P: 0.5, Rep Penalty: 1.2, 
@@ -36,6 +37,7 @@ The following text generation methods are supported:
 * Typical Sampling
 * Greedy Sampling
 
+### Parameters ⚙️:
 Some good text generation parameters are:
 - Nucleus: Temprature: 0.7, P: 0.96, Rep Penalty: 1.2, 
 - Nucleus: Temprature: 1.0, P: 0.5, Rep Penalty: 1.2, 
@@ -58,8 +60,9 @@ The following text generation methods are supported:
 * Typical Sampling
 * Greedy Sampling
 
-Some good text generation parameters are:
-- Nucleus: Temprature: 0.7, P: 0.96, Rep Penalty: 1.2, 
+### Parameters ⚙️:
+Good starting text generation parameters:
+- Nucleus: Temprature: 0.7, P: 0.96, Rep Penalty: 1.2
 - Nucleus: Temprature: 1.0, P: 0.5, Rep Penalty: 1.2, 
 """
 
