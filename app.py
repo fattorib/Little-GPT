@@ -15,8 +15,8 @@ def parse():
 
 
 DEVICE = "cpu"
-# if torch.cuda.is_available():
-#     DEVICE = "cuda"
+if torch.cuda.is_available():
+    DEVICE = "cuda"
 
 BNB_FLAG = False
 try:
