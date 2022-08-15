@@ -68,7 +68,7 @@ The learning rate schedule follows [Cosine Annealing](https://arxiv.org/abs/1608
 
 For GPT-303* the only deviation from the above hyperparams is the learning rate which was decreased for 6e-4 to 3e-4. 
 
-For GPT-1B8, the peak learning rate was decreased to 2e-4 and the sequence length was increased from 128 to 512 over the first 30% of training. 
+For GPT-1B*, the peak learning rate was decreased to 2e-4 and the sequence length was increased from 128 to 512 over the first 30% of training. 
 
 GPT-127* training was conducted on a VM with 4 RTX A5000s for a total of 248 GPU hours with [HuggingFace Accelerate](https://github.com/huggingface/accelerate) for the distributed training. GPT-303* training was conducted on a VM with 4 RTX 3090s using the same codebase for a total of 412 GPU hours. Overall, this made distributed training very easy with the caveat that DeepSpeed training was not possible. While the HuggingFace team is working to add in proper support for DeepSpeed, at the time of training, I ran into too many issues, especially with saving and resuming model and optimizer checkpoints, to feel comfortable starting a long (and expensive) training job just for it to error out with no way to resume my progress. A second option would have just been to port all my models over to a fork of [Megatron](https://github.com/microsoft/Megatron-DeepSpeed), but wheres the fun in doing that?
 
@@ -118,6 +118,15 @@ GPT-1B* is trained with the same setup with the following training changes:
 | GPT-2 1.5B   | 51.21%        | 10.634        | 17.48 (1024 ctx)  | 70.78%     | 40.03%          | 59.40%           | -               |
 | GPT-Neo 1.3B | 57.23         | 7.498         | 13.10 (2048 ctx)  | 71.11%     | 38.66%         | 55.01%           | 300B            |
 
+## A comment on benchmark results
+
+As you can probably see, the models I trained were outperformed (in some cases significantly) by other models. There are two main reasons for this:
+
+**Training Data/Total Compute**: Compared to the GPT-3 or GPT-Neo series of models, my models were trained on less than 10% of the total tokens of these models. For benchmarks such as Hellaswag or Winogrande, I suspect this is the main reason for the difference in performance. 
+
+**Training Context Length**: All my models were trained with a maximum sequence length of 512 tokens. Other models I benchmarked against were trained at sequence lengths of 1024 or 2048 tokens. On perplexity-per-length (PPL) type benchmarks such as WikiText or enwiki8,a model with a longer context length has more tokens to reduce the impact of the *early token curse* (Press. et al 2021), where the the first tokens in the prediction sequence have a much higher loss as they have less context for prediction. 
+
+While my choice of ALiBi for positional encoding did allow some extrapolation to sequence lengths beyond 512 tokens (as below results will show), the PPL improvements are minimal. These findings are similar to what is shown in the ALiBi paper: increasing the inference context length yields PPL gains by reducing the early token curse but the performance does not match that of a model natively trained on a longer context. 
 
 
 ## More Benchmarks 
@@ -142,7 +151,7 @@ Extra benchmarks varying ALiBi context length:
 | GPT-303* (4096 ctx) | 1.236        | 1.268       | 28.15          |
 | GPT-303* (8192 ctx) | OOM          | OOM         | OOM            |
 
-Can be run with the command: 
+These can be run with the command: 
 ```
 bash benchmark.sh
 ```
