@@ -1,0 +1,17 @@
+__pycache__/
+*/__pycache__
+wandb/
+data/*/train
+data/interim/
+outputs/
+venv/
+keys.py
+checkpoints/*
+flagged/*
+.vscode/*
+*.txt
+lm_cache/
+lm-evaluation-harness/
+.vscode/*
+todo.md
+dockerfile
