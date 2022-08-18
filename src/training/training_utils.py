@@ -9,9 +9,10 @@ import torch
 BNB_FLAG = False
 try:
     import bitsandbytes as bnb
+
     BNB_FLAG = True
 except Exception as e:
-    pass 
+    pass
 
 
 def adjust_learning_rate(
@@ -123,6 +124,8 @@ def create_optimizer(
                 }
             ]
     if BNB_FLAG:
-        return bnb.optim.AdamW(params, lr, betas=(0.9, 0.95), eps=1e-8,optim_bits=8)
+        return bnb.optim.AdamW(
+            params, lr, betas=(0.9, 0.95), eps=1e-8, optim_bits=8
+        )
     else:
         return torch.optim.AdamW(params, lr, betas=(0.9, 0.95), eps=1e-8)

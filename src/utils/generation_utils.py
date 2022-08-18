@@ -11,7 +11,29 @@ import torch
 import torch.nn.functional as F
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
+from tokenizers import Tokenizer
 from typing import Tuple, List
+import re
+
+
+def text_standardize(text):
+    """
+    from GPT1 repo. Standard text cleaning
+    """
+    text = text.replace("—", "-")
+    text = text.replace("–", "-")
+    text = text.replace("―", "-")
+    text = text.replace("…", "...")
+    text = text.replace("´", "'")
+    text = re.sub(
+        """(-+|~+|!+|"+|;+|\?+|\++|,+|\)+|\(+|\\+|\/+|\*+|\[+|\]+|}+|{+|\|+|_+)""",
+        r" \1 ",
+        text,
+    )
+    text = re.sub("\s*\n\s*", " \n ", text)
+    text = re.sub("\s*\t\s*", " ", text)
+    text = re.sub("[^\S\n]+", " ", text)
+    return text.strip()
 
 
 def top_k_logits(logits: torch.Tensor, k: int) -> torch.Tensor:
@@ -95,12 +117,19 @@ class TextGenerator:
     def __init__(
         self,
         seq_len: int,
+        tokenizer: Tokenizer,
     ) -> None:
-        self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-        self.seq_len = seq_len
-        self.pad_token = self.tokenizer.eos_token_id
+        if tokenizer is not None:
+            self.tokenizer = tokenizer
+            self.vocab_size = 32001
+            self.seq_len = seq_len
+            self.pad_token = tokenizer.token_to_id("<EOS>")
 
-        self.vocab_size = 50257
+        else:
+            self.tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
+            self.vocab_size = 50257
+            self.seq_len = seq_len
+            self.pad_token = self.tokenizer.eos_token_id
 
     def generate_text_from_prompt(
         self,
@@ -108,25 +137,25 @@ class TextGenerator:
         prompt: str,
         steps: int,
         temperature: float,
-        sample: bool = True,
         top_k: int = None,
         top_p: float = None,
-        typical_sampling: bool = None,
         tau: float = None,
+        repetition_penalty: float = 1.0,
+        sampling_method: str = None,
         device: str = "cpu",
     ) -> Tuple[str, str, List[float]]:
 
         output, step, logprobs = self.generate_tokens(
-            model,
-            prompt,
-            steps,
-            temperature,
-            top_k,
-            sample,
-            top_p,
-            typical_sampling,
-            tau,
-            device,
+            model=model,
+            prompt=text_standardize(prompt),
+            steps=steps,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            tau=tau,
+            repetition_penalty=repetition_penalty,
+            sampling_method=sampling_method,
+            device=device,
         )
         full_gen, new_gen = self.token_to_text(prompt, output, step)
         return full_gen, new_gen, logprobs
@@ -152,17 +181,14 @@ class TextGenerator:
         temperature: float,
         top_k: int,
         top_p: float = 0.0,
-        typical_sampling: bool = False,
         tau: float = 0.2,
-        sample: bool = True,
+        repetition_penalty: float = 1.0,
+        sampling_method: List[str] = None,
         device: str = "cpu",
     ) -> Tuple[torch.Tensor, int, List[float]]:
+
         model.eval()
         logprobs = []
-
-        # device = "cpu"
-        # if torch.cuda.is_available():
-        #     device = "cuda"
 
         tokens = torch.tensor(
             self.tokenizer.encode(prompt.strip()),
@@ -172,29 +198,43 @@ class TextGenerator:
 
         x = tokens.view(1, -1)
 
+        num_token = self.seq_len
+        if x.shape[1] > num_token:
+            x_cond = x[:, -num_token:]
+        else:
+            x_cond = x
+
+        layer_past = None
+
+        generated_tokens = []
+
         for step in tqdm(range(steps)):
-
-            num_token = self.seq_len
-
-            if x.shape[1] > num_token:
-
-                x_cond = x[:, -num_token:]
-
+            if device != "cpu":
+                # autocast hangs with my CPU?
+                with torch.autocast(device_type=device):
+                    logits, layer_past = model(
+                        x_cond, use_cache=True, past_states=layer_past
+                    )
             else:
-                x_cond = x
-
-            with torch.autocast(device_type=device):
-                logits = model(x_cond)
+                logits, layer_past = model(
+                    x_cond, use_cache=True, past_states=layer_past
+                )
 
             logits = logits[:, -1, :] / temperature
 
-            if top_p > 0.0:
+            for prev_gen_token in generated_tokens:
+                if logits[:, prev_gen_token] < 0:
+                    logits[:, prev_gen_token] *= repetition_penalty
+                else:
+                    logits[:, prev_gen_token] /= repetition_penalty
 
+            if sampling_method == "nucleus":
                 logits = top_p_logits(logits, top_p=top_p)
 
-            elif typical_sampling:
+            elif sampling_method == "typical":
                 logits = typical_sampling_logits(logits, mass=tau)
-            else:
+
+            elif sampling_method == "topk":
                 logits = top_k_logits(logits, k=top_k)
 
             probs = F.softmax(logits, dim=-1)
@@ -202,18 +242,21 @@ class TextGenerator:
             # This just sets the prob for <|endoftext|> to 0
             # probs[:, 50256] = 0
 
-            if not sample:
-                out = torch.topk(probs, k=1)
-                x = torch.cat((x[:, :], out.indices), axis=1)
-                if out.item() == self.pad_token:
+            if sampling_method == "greedy":
+                x_cond = torch.topk(probs, k=1).indices
+                x = torch.cat((x[:, :], x_cond), axis=1)
+                if x_cond.item() == self.pad_token:
                     return x[:, :], step
             else:
-                out = torch.multinomial(probs, num_samples=1)
-                logprobs.append(torch.log(probs[:, out]).item())
+                x_cond = torch.multinomial(probs, num_samples=1)
+                logprobs.append(torch.log(probs[:, x_cond]).item())
                 # If we hit end of text, return as-is
-                if out.item() == self.pad_token:
-                    return x[:, :], step
+                if x_cond.item() == self.pad_token:
+                    return x[:, :], step, logprobs
                 else:
-                    x = torch.cat((x[:, :], out), axis=1)
+                    x = torch.cat((x[:, :], x_cond), axis=1)
+
+                if x_cond.item() not in generated_tokens:
+                    generated_tokens.append(x_cond.item())
 
         return x, steps, logprobs

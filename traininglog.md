@@ -52,7 +52,7 @@ Wherever possible, I tried follow training heuristics from other similar-sized m
 
 *Given that I was training with a sequence length of 512, this corresponds to a total batch size of 1024 samples.*
 
-The full list of training hyperparameters is as follows:
+The full list of training hyperparameters for GPT-127* are as follows:
 | Hyperparameter     | Value |
 |--------------------|-------|
 | Batch Size         | 1024  |
@@ -60,13 +60,19 @@ The full list of training hyperparameters is as follows:
 | Warmup Steps       | 4000  |
 | Total Steps        | 51000 |
 | Weight Decay       | 0.1   |
-| Min Learning Rate  | 6e-5  |
-| Min Learning Rate  | 6e-4  |
+| Max Learning Rate  | 6e-4  |
 | Initial LR         | 0     |
 
-The learning rate schedule follow [Cosine Annealing](https://arxiv.org/abs/1608.03983v5) with a warmup of 4000 steps and a decay to 10% of the original learning rate which was held constant for the final 10% of the training tokens. 
 
-GPT-127* training was conducted on a VM with 4 RTX A5000s for a total of 248 GPU Hours with [HuggingFace Accelerate](https://github.com/huggingface/accelerate) for the distributed training. GPT-303* training was conducted on a VM with 4 RTX 3090s using the same codebase for a total of 412 GPU HOURS. Overall, this made distributed training very easy with the caveat that DeepSpeed training was not possible. While the HuggingFace team is working to add in proper support for DeepSpeed, at the time of training, I ran into too many issues, especially with saving and resuming model and optimizer checkpoints, to feel comfortable starting a long (and expensive) training job just for it to error out with no way to resume my progress.  
+The learning rate schedule follows [Cosine Annealing](https://arxiv.org/abs/1608.03983v5) with a warmup of 4000 steps and a decay to 10% of the original learning rate which was held constant for the final 10% of the training tokens. 
+
+For GPT-303* the only deviation from the above hyperparams is the learning rate which was decreased for 6e-4 to 3e-4. 
+
+For GPT-1B*, the peak learning rate was decreased to 2e-4 and the sequence length was increased from 128 to 512 over the first 30% of training. 
+
+GPT-127* training was conducted on a VM with 4 RTX A5000s for a total of 248 GPU hours with [HuggingFace Accelerate](https://github.com/huggingface/accelerate) for the distributed training. GPT-303* training was conducted on a VM with 4 RTX 3090s using the same codebase for a total of 412 GPU hours. Overall, this made distributed training very easy with the caveat that DeepSpeed training was not possible. While the HuggingFace team is working to add in proper support for DeepSpeed, at the time of training, I ran into too many issues, especially with saving and resuming model and optimizer checkpoints, to feel comfortable starting a long (and expensive) training job just for it to error out with no way to resume my progress. A second option would have just been to port all my models over to a fork of [Megatron](https://github.com/microsoft/Megatron-DeepSpeed), but wheres the fun in doing that?
+
+GPT-1B* was trained on an 8x A100 server for a total of 1008 GPU hours. 
 
 # Reference Models
 
@@ -80,8 +86,8 @@ Benchmarks were performed using [Language Model Evaluation Harness](https://gith
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) | WikiText (PPL) | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|---------------|---------------|----------------|------------|-----------------|------------------|-----------------|
-| GPT-127*    | 36.23%        | 28.60         | 37.99          | 63.17%     | 28.07%          | 51.46%           | 26B            |
-| GPT-125M (Mine)    | 36.52%        | 30.0494         | 37.863         | 62.46%     | 28.57%          | -           | 21B            |
+| **GPT-127\***    | 36.23%        | 28.60         | 37.99          | 63.17%     | 28.07%          | 51.46%           | 26B            |
+| **GPT-125M (Mine)**    | 36.52%        | 30.0494         | 37.863         | 62.46%     | 28.57%          | -           | 21B            |
 | GPT-Neo 125M | 37.36%        | 30.266        | 32.285         | 63.06%     | 28.67%          | 50.43%           | 300B            |
 | GPT-3 125M   | 42.7%         | 18.6          | -              | 65.07%     | 33.7%           | 52.0%            | 300B            |
 
@@ -92,11 +98,36 @@ Early on in my experimentation, on the same 21B token corpus, I also trained a 3
 
 | Model        | LAMBADA (Acc) | LAMBADA (PPL) | WikiText (PPL) | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
 |--------------|---------------|---------------|----------------|------------|-----------------|------------------|-----------------|
-| GPT-354 (Mine)    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | -           | 26B             |
+| **GPT-303\***   | 43.39%        | 15.89         | 28.57         | 65.2%     | 29.8%          | 49.3%           | 26B            |
+| **GPT-354 (Mine)**    | 48.22%        | 13.29         | 28.177         | 65.67%     | 32.36%          | 51.3%           | 21B             |
 | GPT-Neo 350M    | 47.27%        |  	13.876         | 22.5657         | 65.07%     | 32.16%         | 51.14%           | ~300B   |
 | GPT-3 350M    | 54.3%        |  	9.09         | 22.5657         | 70.2%     | 43.6%         | 52.1%           | 300B             |
 
 My 354M param model I trained was able to generate relatively coherent sounding text. I was pleasantly surprised by how well this model performed and was able to find the time & compute to train GPT-303* on WebText++. 
+
+## GPT-1B* Training Log
+
+GPT-1B* is trained with the same setup with the following training changes:
+
+1. 8-bit optimizers from [bitsandbytes](https://github.com/facebookresearch/bitsandbytes)
+2. Staged Sequence Length Warmup from 128 to 512. Over the first 30% of training steps (~15000 steps) the train sequence length was warmed up from 128 to 512 in stages of length 3750 steps. The sequence length progression was (128,192,256,384,512).
+
+| Model        | LAMBADA (Acc) | LAMBADA (PPL) |   WikiText (PPL)  | Piqa (Acc) | Hellaswag (Acc) | Winogrande (Acc) | Training Tokens |
+|--------------|:-------------:|:-------------:|:-----------------:|:----------:|:---------------:|:----------------:|:---------------:|
+| **GPT-1B\*** | 52.65         | 9.758         | 23.052 (1024 ctx) | 69.31%     | 33.36%          | 52.17%           | 26B             |
+| GPT-2 1.5B   | 51.21%        | 10.634        | 17.48 (1024 ctx)  | 70.78%     | 40.03%          | 59.40%           | -               |
+| GPT-Neo 1.3B | 57.23         | 7.498         | 13.10 (2048 ctx)  | 71.11%     | 38.66%         | 55.01%           | 300B            |
+
+## A comment on benchmark results
+
+As you can probably see, the models I trained were outperformed (in some cases significantly) by other models. There are two main reasons for this:
+
+**Training Data/Total Compute**: Compared to the GPT-3 or GPT-Neo series of models, my models were trained on less than 10% of the total tokens of these models. For benchmarks such as Hellaswag or Winogrande, I suspect this is the main reason for the difference in performance. 
+
+**Training Context Length**: All my models were trained with a maximum sequence length of 512 tokens. Other models I benchmarked against were trained at sequence lengths of 1024 or 2048 tokens. On perplexity-per-length (PPL) type benchmarks such as WikiText or enwiki8,a model with a longer context length has more tokens to reduce the impact of the *early token curse* (Press. et al 2021), where the the first tokens in the prediction sequence have a much higher loss as they have less context for prediction. 
+
+While my choice of ALiBi for positional encoding did allow some extrapolation to sequence lengths beyond 512 tokens (as below results will show), the PPL improvements are minimal. These findings are similar to what is shown in the ALiBi paper: increasing the inference context length yields PPL gains by reducing the early token curse but the performance does not match that of a model natively trained on a longer context. 
+
 
 ## More Benchmarks 
 
@@ -120,7 +151,15 @@ Extra benchmarks varying ALiBi context length:
 | GPT-303* (4096 ctx) | 1.236        | 1.268       | 28.15          |
 | GPT-303* (8192 ctx) | OOM          | OOM         | OOM            |
 
-Can be run with the command: 
+**GPT-1B\*:**
+Encountered OOMs with longer contexts on my local machine. For consistency, just including the results at 1024 ctx. 
+
+| Model               | enwik8 (BPB) | text8 (BPC) | WikiText (PPL) |
+|---------------------|--------------|:-----------:|:--------------:|
+| GPT-1B\* (1024 ctx) | 1.134        | 1.174       | 23.052         |
+
+
+These can be run with the command: 
 ```
 bash benchmark.sh
 ```
@@ -144,8 +183,5 @@ I have worked on this project for the last 7 months or so and at this stage I am
 
 - Create a much larger dataset (~50B to 100B tokens). While The Pile would be my starting point, I would also be interested in scraping my own smaller dataset to include. 
 
-- Train a larger model. I originally planned to train a model at around a 1B parameter size using DeepSpeed. However, due to issues with HF Accelerate and DeepSpeed checkpointing, I had to put that plan on hold for the reasons mentioned above. Using VMs from Vast.ai I previously estimated this would cost between $500 and $750 CAD without DeepSpeed; too much for me to spend right now :)
-
-- Use 8-bit optimizers. This is a pretty minor change, but something I wasn't aware of until much later in the project. 
 
 Thanks for reading!
