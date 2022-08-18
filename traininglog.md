@@ -151,6 +151,14 @@ Extra benchmarks varying ALiBi context length:
 | GPT-303* (4096 ctx) | 1.236        | 1.268       | 28.15          |
 | GPT-303* (8192 ctx) | OOM          | OOM         | OOM            |
 
+**GPT-1B\*:**
+Encountered OOMs with longer contexts on my local machine. For consistency, just including the results at 1024 ctx. 
+
+| Model               | enwik8 (BPB) | text8 (BPC) | WikiText (PPL) |
+|---------------------|--------------|:-----------:|:--------------:|
+| GPT-1B\* (1024 ctx) | 1.134        | 1.174       | 23.052         |
+
+
 These can be run with the command: 
 ```
 bash benchmark.sh
