@@ -1,5 +1,7 @@
 # GPT*
 
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1bWpgzyBXwrcTkCEuCXQ5k7vjMrsOyF9B?usp=sharing)
+
 GPT* is a collection of transformer models based on GPT2-Small, GPT2-Medium, and GPT2-XL with the following architecture modifications to speed up training and inference:
 
 1. Parallel residual connections (as introduced in [GPT-J](https://github.com/kingoflolz/mesh-transformer-jax))
