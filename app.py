@@ -131,7 +131,7 @@ if __name__ == "__main__":
             gr.inputs.Slider(
                 0, 1000, default=100, label="Number of tokens to generate"
             ),
-            gr.inputs.Slider(0, 2, default=0.85, label="Temperature"),
+            gr.inputs.Slider(0, 2, default=0.70, label="Temperature"),
             gr.inputs.Slider(
                 0,
                 50,
@@ -153,7 +153,7 @@ if __name__ == "__main__":
             gr.inputs.Slider(
                 0.0,
                 1.3,
-                default=1.0,
+                default=1.2,
                 label="Repetition Penalty",
             ),
             gr.inputs.Radio(
