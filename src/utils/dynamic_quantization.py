@@ -5,6 +5,8 @@ Small changes made to ensure compatability with StableEmbedding layer from bitsa
 
 Example Use:
 
+NOTE: This code was created around a week prior to the release of: https://github.com/TimDettmers/bitsandbytes
+
 ...
 model = model_getter()
 
