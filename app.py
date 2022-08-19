@@ -172,7 +172,7 @@ if __name__ == "__main__":
         if args.model_size in ["base*", "medium*", "XL*"]
         else "GPT-354M 🤖",
         description=description,
-        article="For more details check out the model repo [here](https://github.com/fattorib/Faster-GPT)",
+        article="For more details check out the model repo [here](https://github.com/fattorib/Little-GPT)",
         allow_flagging="never",
     )
     iface.launch(share=args.share)
