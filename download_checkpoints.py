@@ -2,8 +2,9 @@
 Download completed model states
 """
 
-import requests
 import argparse
+
+import requests
 from tqdm import tqdm
 
 

@@ -1,16 +1,16 @@
-import torch.nn as nn
-import torch
-import torch.cuda.amp as amp
-from datasets import load_dataset
-from tqdm import tqdm
 import gzip
-from benchmark.benchmark_map import DATASET_MAP
 import math
 
+import torch
+import torch.cuda.amp as amp
+import torch.nn as nn
+from datasets import load_dataset
+from tqdm import tqdm
 
-def benchmark_ppl(
-    model, args, tokenizer, device="cuda", max_length=1024, stride=1024
-):
+from benchmark.benchmark_map import DATASET_MAP
+
+
+def benchmark_ppl(model, args, tokenizer, device="cuda", max_length=1024, stride=1024):
     """
     Compute perplexity per length (PPL) on a given dataset.
     Only supports wikitext2 from huggingface
@@ -58,12 +58,10 @@ def benchmark_ppl(
     return torch.exp(torch.stack(nlls).sum() / end_loc)
 
 
-def benchmark_bpb(
-    model, args, tokenizer, device="cuda", max_length=1024, stride=1024
-):
+def benchmark_bpb(model, args, tokenizer, device="cuda", max_length=1024, stride=1024):
     """
-    Compute bits per UTF-8 encoded byte (BPB) or bits per character. 
-    Only supports enwiki8 and text8. 
+    Compute bits per UTF-8 encoded byte (BPB) or bits per character.
+    Only supports enwiki8 and text8.
 
     """
 
@@ -74,9 +72,7 @@ def benchmark_bpb(
 
     with gzip.open(dataset_pth) as file:
         X = file.read(int(100e6))
-        _, validation_X = X[: int(90e6)].decode("utf-8"), X[int(95e6) :].decode(
-            "utf-8"
-        )
+        _, validation_X = X[: int(90e6)].decode("utf-8"), X[int(95e6) :].decode("utf-8")
 
     byte_length = utf8len(validation_X)
 
@@ -116,9 +112,8 @@ def benchmark_bpb(
 
             nlls.append(neg_log_likelihood)
 
-    return (torch.stack(nlls).mean() / math.log(2)) * (
-        token_length / byte_length
-    )
+    return (torch.stack(nlls).mean() / math.log(2)) * (token_length / byte_length)
+
 
 METRIC_REGISTRY = {
     "PPL": benchmark_ppl,

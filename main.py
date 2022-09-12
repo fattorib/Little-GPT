@@ -1,33 +1,23 @@
+import argparse
+import logging
+import random
+import subprocess
+
+import numpy as np
 import torch
 import torch.nn.parallel
-
 import torch.optim
 import torch.utils.data
 import torch.utils.data.distributed
-import random
-
-import numpy as np
-
 import wandb
-
-
-from src.training.training_utils import create_optimizer, adjust_learning_rate
-from src.utils.calc import compute_num_tokens
+import webdataset as wds
+from accelerate import (Accelerator, DistributedDataParallelKwargs,
+                        DistributedType)
+from omegaconf import OmegaConf
 from tqdm.auto import tqdm
 
-from accelerate import (
-    DistributedDataParallelKwargs,
-    Accelerator,
-    DistributedType,
-)
-import logging
-
-
-import subprocess
-from omegaconf import OmegaConf
-import argparse
-import webdataset as wds
-
+from src.training.training_utils import adjust_learning_rate, create_optimizer
+from src.utils.calc import compute_num_tokens
 
 logging.basicConfig(level=logging.INFO)
 
@@ -120,10 +110,10 @@ def main():
     from braceexpand import braceexpand
 
     # We have two separate datasets so we just combine them together and perform a large shuffle at beginning of training
-    original_urls_train = "data/processed/train/webtextplusplus_no_resample_train-{000000..000211}.tar.gz"
-    new_urls_train = (
-        "data/processed/train/WebTextNouveau_train-{000000..000050}.tar.gz"
+    original_urls_train = (
+        "data/processed/train/webtextplusplus_no_resample_train-{000000..000211}.tar.gz"
     )
+    new_urls_train = "data/processed/train/WebTextNouveau_train-{000000..000050}.tar.gz"
 
     original_urls_validation = "data/processed/train/webtextplusplus_no_resample_validation-{000000..000018}.tar.gz"
     new_urls_validation = (
@@ -202,9 +192,7 @@ def main():
         # Load model, optimizer dict
         model.load_state_dict(state_dict["state_dict"])
 
-        optimizer = create_optimizer(
-            model, cfg.training.weight_decay, 0, use_bnb=False
-        )
+        optimizer = create_optimizer(model, cfg.training.weight_decay, 0, use_bnb=False)
 
         optimizer.load_state_dict(state_dict["optimizer"])
 
@@ -403,8 +391,7 @@ def train(
                 raise GetOutOfLoop
 
             reduced_loss = (
-                cfg.training.gradient_accumulation_steps
-                * accelerator.gather(loss)
+                cfg.training.gradient_accumulation_steps * accelerator.gather(loss)
             )
 
             if not accelerator.optimizer_step_was_skipped:

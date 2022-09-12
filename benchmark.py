@@ -7,11 +7,13 @@ All other benchmarks reported are computed using:
     https://github.com/EleutherAI/lm-evaluation-harness/
 """
 
-from transformers import GPT2TokenizerFast
 import argparse
+
+import pandas as pd
+from transformers import GPT2TokenizerFast
+
 from benchmark.benchmark_map import DATASET_MAP
 from benchmark.benchmark_metrics import METRIC_REGISTRY
-import pandas as pd
 
 
 def parse():

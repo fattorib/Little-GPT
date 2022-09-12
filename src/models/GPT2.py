@@ -1,10 +1,12 @@
-from functools import partial
-import torch
-import torch.nn as nn
 import copy
 import math
+from functools import partial
+from typing import List, Tuple, Union
+
+import torch
+import torch.nn as nn
 import torch.nn.functional as F
-from typing import Union, Tuple, List
+
 from src.models.stableembedding import FrozenStableEmbedding
 
 try:
@@ -125,14 +127,12 @@ class ALiBi(nn.Module):
         self.num_layers = num_layers
         self.window_size = window_size
 
-        self.register_buffer(
-            "slopes", torch.Tensor(self.get_slopes(self.n_head))
-        )
+        self.register_buffer("slopes", torch.Tensor(self.get_slopes(self.n_head)))
         self.register_buffer(
             "mask",
-            torch.tril(
-                torch.ones(block_size, block_size, dtype=torch.uint8)
-            ).view(1, 1, block_size, block_size),
+            torch.tril(torch.ones(block_size, block_size, dtype=torch.uint8)).view(
+                1, 1, block_size, block_size
+            ),
         )
 
         init_function_partial = partial(
@@ -190,19 +190,13 @@ class ALiBi(nn.Module):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         B, T, C = x.size()
         k = (
-            self.key(x)
-            .view(B, T, self.n_head, C // self.n_head)
-            .transpose(1, 2)
+            self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
         )  # (B, nh, T, hs)
         q = (
-            self.query(x)
-            .view(B, T, self.n_head, C // self.n_head)
-            .transpose(1, 2)
+            self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
         )  # (B, nh, T, hs)
         v = (
-            self.value(x)
-            .view(B, T, self.n_head, C // self.n_head)
-            .transpose(1, 2)
+            self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
         )  # (B, nh, T, hs)
 
         present = None
@@ -234,9 +228,9 @@ class ALiBi(nn.Module):
                 del self.mask
                 self.mask = (
                     torch.tril(
-                        torch.ones(
-                            seq_len_k, seq_len_k, dtype=torch.uint8
-                        ).triu(-self.window_size)
+                        torch.ones(seq_len_k, seq_len_k, dtype=torch.uint8).triu(
+                            -self.window_size
+                        )
                     )
                     .view(1, 1, seq_len_k, seq_len_k)
                     .to(x.device)
@@ -272,9 +266,7 @@ class ALiBi(nn.Module):
 
             a = a * self.slopes.view(self.slopes.shape[0], 1, 1)
 
-            self.alibi_cache = a[:, seq_len_k - 1, :].view(
-                a.shape[0], 1, a.shape[2]
-            )
+            self.alibi_cache = a[:, seq_len_k - 1, :].view(a.shape[0], 1, a.shape[2])
 
         att = att + self.alibi_cache
 
@@ -319,9 +311,9 @@ class CausalSelfAttention(nn.Module):
 
         self.register_buffer(
             "mask",
-            torch.tril(
-                torch.ones(block_size, block_size, dtype=torch.uint8)
-            ).view(1, 1, block_size, block_size),
+            torch.tril(torch.ones(block_size, block_size, dtype=torch.uint8)).view(
+                1, 1, block_size, block_size
+            ),
         )
 
         self.n_head = num_head
@@ -366,19 +358,13 @@ class CausalSelfAttention(nn.Module):
         B, T, C = x.size()
 
         k = (
-            self.key(x)
-            .view(B, T, self.n_head, C // self.n_head)
-            .transpose(1, 2)
+            self.key(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
         )  # (B, nh, T, hs)
         q = (
-            self.query(x)
-            .view(B, T, self.n_head, C // self.n_head)
-            .transpose(1, 2)
+            self.query(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
         )  # (B, nh, T, hs)
         v = (
-            self.value(x)
-            .view(B, T, self.n_head, C // self.n_head)
-            .transpose(1, 2)
+            self.value(x).view(B, T, self.n_head, C // self.n_head).transpose(1, 2)
         )  # (B, nh, T, hs)
 
         present = None
@@ -512,9 +498,7 @@ class GPT2(nn.Module):
             try:
                 import bitsandbytes as bnb
 
-                self.wte = bnb.nn.StableEmbedding(
-                    self.vocab_size, self.embedding_dim
-                )
+                self.wte = bnb.nn.StableEmbedding(self.vocab_size, self.embedding_dim)
                 BNB_FLAG = True
             except Exception as e:
                 BNB_FLAG = False
@@ -545,9 +529,7 @@ class GPT2(nn.Module):
                         num_layers=N,
                         fused_residuals=fused_residuals,
                         use_alibi=self.use_alibi,
-                        window_size=window_size[i]
-                        if window_size is not None
-                        else None,
+                        window_size=window_size[i] if window_size is not None else None,
                     )
                 )
                 for i in range(self.N)
@@ -589,9 +571,7 @@ class GPT2(nn.Module):
                 Bool whether to sample from logits distribution
         """
 
-        context = torch.tensor(context, dtype=torch.long).to(
-            self.wte.weight.device
-        )
+        context = torch.tensor(context, dtype=torch.long).to(self.wte.weight.device)
 
         x = context.view(1, -1)
 
@@ -633,9 +613,7 @@ class GPT2(nn.Module):
 
         if not self.use_alibi:
             if past_states is None:
-                position_ids = torch.arange(
-                    0, t, dtype=torch.long, device=x.device
-                )
+                position_ids = torch.arange(0, t, dtype=torch.long, device=x.device)
                 position_ids = position_ids.unsqueeze(0).view(-1, t)
                 position_embeds = self.wpe(position_ids)
             else:
@@ -717,11 +695,7 @@ def create_GPT2_base(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     Matches the parameters of the original GPT2-117M model
     """
     model = GPT2(
-        num_ctx=num_ctx,
-        embedding_dim=768,
-        N=12,
-        vocab_size=vocab_size,
-        **kwargs
+        num_ctx=num_ctx, embedding_dim=768, N=12, vocab_size=vocab_size, **kwargs
     )
 
     if model_checkpoint is not None:
@@ -759,9 +733,7 @@ def create_GPT2_medium(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     return model
 
 
-def create_GPT2_base_optimized(
-    vocab_size, num_ctx, model_checkpoint=None, **kwargs
-):
+def create_GPT2_base_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     """
     Updated GPT-medium model optimized for increased throughput.
     The following changes have been made:
@@ -772,11 +744,7 @@ def create_GPT2_base_optimized(
 
     """
     model = GPT2(
-        num_ctx=num_ctx,
-        embedding_dim=1024,
-        N=6,
-        vocab_size=vocab_size,
-        **kwargs
+        num_ctx=num_ctx, embedding_dim=1024, N=6, vocab_size=vocab_size, **kwargs
     )
 
     if model_checkpoint is not None:
@@ -790,9 +758,7 @@ def create_GPT2_base_optimized(
     return model
 
 
-def create_GPT2_medium_optimized(
-    vocab_size, num_ctx, model_checkpoint=None, **kwargs
-):
+def create_GPT2_medium_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     """
     Updated GPT-medium model optimized for increased throughput.
     The following changes have been made:
@@ -804,11 +770,7 @@ def create_GPT2_medium_optimized(
     """
 
     model = GPT2(
-        num_ctx=num_ctx,
-        embedding_dim=1536,
-        N=8,
-        vocab_size=vocab_size,
-        **kwargs
+        num_ctx=num_ctx, embedding_dim=1536, N=8, vocab_size=vocab_size, **kwargs
     )
     if model_checkpoint is not None:
         state_dict = torch.load(
@@ -821,9 +783,7 @@ def create_GPT2_medium_optimized(
     return model
 
 
-def create_GPT2_XL_optimized(
-    vocab_size, num_ctx, model_checkpoint=None, **kwargs
-):
+def create_GPT2_XL_optimized(vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     """
     Updated GPT-XL (ish) model optimized for increased throughput.
     The following changes have been made:
@@ -853,9 +813,7 @@ def create_GPT2_XL_optimized(
     return model
 
 
-def model_getter(
-    model_name, vocab_size, num_ctx, model_checkpoint=None, **kwargs
-):
+def model_getter(model_name, vocab_size, num_ctx, model_checkpoint=None, **kwargs):
     MODELS_DICT = {
         "qa": create_GPT2_qa,
         "base": create_GPT2_base,
@@ -865,6 +823,4 @@ def model_getter(
         "XL*": create_GPT2_XL_optimized,
     }
 
-    return MODELS_DICT[model_name](
-        vocab_size, num_ctx, model_checkpoint, **kwargs
-    )
+    return MODELS_DICT[model_name](vocab_size, num_ctx, model_checkpoint, **kwargs)

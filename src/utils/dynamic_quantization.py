@@ -15,12 +15,12 @@ bnbfy_(model)
 
 """
 
+import bitsandbytes as bnb
 import torch
 import torch.nn as nn
-from torch.cuda.amp import custom_fwd, custom_bwd
 import torch.nn.functional as F
-import bitsandbytes as bnb
-from bitsandbytes.functional import quantize_blockwise, dequantize_blockwise
+from bitsandbytes.functional import dequantize_blockwise, quantize_blockwise
+from torch.cuda.amp import custom_bwd, custom_fwd
 
 
 class DequantizeAndLinear(torch.autograd.Function):
@@ -34,9 +34,7 @@ class DequantizeAndLinear(torch.autograd.Function):
         code: torch.FloatTensor,
         bias: torch.FloatTensor,
     ):
-        weights_deq = dequantize_blockwise(
-            weights_quantized, absmax=absmax, code=code
-        )
+        weights_deq = dequantize_blockwise(weights_quantized, absmax=absmax, code=code)
         ctx.save_for_backward(input, weights_quantized, absmax, code)
         ctx._has_bias = bias is not None
         return F.linear(input, weights_deq, bias)
@@ -51,13 +49,9 @@ class DequantizeAndLinear(torch.autograd.Function):
         )
         input, weights_quantized, absmax, code = ctx.saved_tensors
         # grad_output: [*batch, out_features]
-        weights_deq = dequantize_blockwise(
-            weights_quantized, absmax=absmax, code=code
-        )
+        weights_deq = dequantize_blockwise(weights_quantized, absmax=absmax, code=code)
         grad_input = grad_output @ weights_deq
-        grad_bias = (
-            grad_output.flatten(0, -2).sum(dim=0) if ctx._has_bias else None
-        )
+        grad_bias = grad_output.flatten(0, -2).sum(dim=0) if ctx._has_bias else None
         return grad_input, None, None, None, grad_bias
 
 
@@ -122,9 +116,7 @@ class FrozenBNBStableEmbedding(nn.Module):
         return f"{self.__class__.__name__}({self.num_embeddings}, {self.embedding_dim})"
 
 
-def quantize_blockise_lowmemory(
-    matrix: torch.Tensor, chunk_size: int = 2 ** 20
-):
+def quantize_blockise_lowmemory(matrix: torch.Tensor, chunk_size: int = 2 ** 20):
     assert chunk_size % 4096 == 0
     code = None
     chunks = []
@@ -152,6 +144,4 @@ def bnbfy_(model):
 
             elif isinstance(child, bnb.nn.StableEmbedding):
                 print(name, child)
-                setattr(
-                    module, name, FrozenBNBStableEmbedding.from_embedding(child)
-                )
+                setattr(module, name, FrozenBNBStableEmbedding.from_embedding(child))

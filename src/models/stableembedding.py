@@ -37,9 +37,7 @@ class FrozenStableEmbedding(nn.Module):
             )
 
     @classmethod
-    def from_embedding(
-        cls, embedding: torch.nn.Module
-    ) -> "FrozenStableEmbedding":
+    def from_embedding(cls, embedding: torch.nn.Module) -> "FrozenStableEmbedding":
         weights = embedding.weight
         ln_weight, ln_bias = embedding.norm.weight, embedding.norm.bias
         return cls(weights, ln_weight, ln_bias)

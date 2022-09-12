@@ -1,13 +1,14 @@
+import collections
+import copy
+import math
+from typing import Tuple, Union
+
 import torch
 import torch.nn as nn
-import copy
-from einops.layers.torch import Rearrange
-from einops import rearrange
-import math
 import torch.nn.functional as F
+from einops import rearrange
+from einops.layers.torch import Rearrange
 from scipy.linalg import toeplitz
-import collections
-from typing import Union, Tuple
 
 """
 Module class for an autoregressive gMLP. Implementation is based on the paper
@@ -138,9 +139,7 @@ class gMLPBlock(nn.Module):
                 decay_pow=decay_pow,
             )
         else:
-            self.sgu = SpatialGatingUnit(
-                n_ctx=n_ctx, embedding_dim=embedding_dim
-            )
+            self.sgu = SpatialGatingUnit(n_ctx=n_ctx, embedding_dim=embedding_dim)
 
         self.attn = None
         if tiny_attn:
@@ -216,24 +215,18 @@ class TinySelfAttention(nn.Module):
         self.fc_resid = nn.Linear(d_attn, d_out)
         self.register_buffer(
             "mask",
-            torch.tril(
-                torch.ones(block_size, block_size, dtype=torch.uint8)
-            ).view(1, 1, block_size, block_size),
+            torch.tril(torch.ones(block_size, block_size, dtype=torch.uint8)).view(
+                1, 1, block_size, block_size
+            ),
         )
         self.num_layers = num_layers
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         B, T, C = x.size()
 
-        k = (
-            self.key(x).view(B, T, 1, self.d_attn).transpose(1, 2)
-        )  # (B, nh, T, hs)
-        q = (
-            self.query(x).view(B, T, 1, self.d_attn).transpose(1, 2)
-        )  # (B, nh, T, hs)
-        v = (
-            self.value(x).view(B, T, 1, self.d_attn).transpose(1, 2)
-        )  # (B, nh, T, hs)
+        k = self.key(x).view(B, T, 1, self.d_attn).transpose(1, 2)  # (B, nh, T, hs)
+        q = self.query(x).view(B, T, 1, self.d_attn).transpose(1, 2)  # (B, nh, T, hs)
+        v = self.value(x).view(B, T, 1, self.d_attn).transpose(1, 2)  # (B, nh, T, hs)
 
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
@@ -303,9 +296,7 @@ class gMLP(nn.Module):
 
         self.ln = nn.LayerNorm(self.embedding_dim)
         self.dropout = nn.Dropout(p=embedding_dropout)
-        self.lm_head = nn.Linear(
-            self.embedding_dim, self.vocab_size, bias=False
-        )
+        self.lm_head = nn.Linear(self.embedding_dim, self.vocab_size, bias=False)
 
         if self.tied_head:
             self.lm_head.weight = self.wte.weight
@@ -401,9 +392,7 @@ def create_gmlp_medium(vocab_size: int, num_ctx: int, **kwargs) -> gMLP:
     )
 
 
-def model_getter(
-    model_name: str, vocab_size: int, num_ctx: int, **kwargs
-) -> gMLP:
+def model_getter(model_name: str, vocab_size: int, num_ctx: int, **kwargs) -> gMLP:
     MODELS_DICT = {
         "qa": create_gmlp_qa,
         "base": create_gmlp_base,

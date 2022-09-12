@@ -4,6 +4,7 @@ for the embedding layers. We extract these values and put them into our own cust
 
 """
 import bitsandbytes as bnb
+
 from src.models.stableembedding import FrozenStableEmbedding
 
 
@@ -12,6 +13,4 @@ def unbnbfy_(model):
         for name, child in module.named_children():
             if isinstance(child, bnb.nn.StableEmbedding):
                 print(name, child)
-                setattr(
-                    module, name, FrozenStableEmbedding.from_embedding(child)
-                )
+                setattr(module, name, FrozenStableEmbedding.from_embedding(child))

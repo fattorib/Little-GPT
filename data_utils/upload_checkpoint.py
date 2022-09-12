@@ -1,6 +1,7 @@
+from datetime import datetime
+
 import boto3
 from keys import AWS_ACCESS_KEY, AWS_SECRET_ACCESS_KEY
-from datetime import datetime
 
 
 def upload_checkpoint(directory: str, prefix: str, path: str) -> None:

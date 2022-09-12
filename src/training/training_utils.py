@@ -2,9 +2,10 @@
 Helper functions for adjusting learning rate and creating optimizers
 """
 
-from omegaconf import DictConfig
 import math
+
 import torch
+from omegaconf import DictConfig
 
 BNB_FLAG = False
 try:
@@ -15,9 +16,7 @@ except Exception as e:
     pass
 
 
-def adjust_learning_rate(
-    optimizer: torch.optim, step: int, cfg: DictConfig
-) -> float:
+def adjust_learning_rate(optimizer: torch.optim, step: int, cfg: DictConfig) -> float:
     """
     Adjusts learning rate to follow cosine annealing with warmup + a (possible)
     constant cooldown at the end.
@@ -66,9 +65,7 @@ def adjust_learning_rate_inv_sqrt(
             lr = scale_factor / math.sqrt(step)
         else:
             final_lr = scale_factor / math.sqrt(cfg.training.anneal_steps)
-            remaining_total_steps = (
-                cfg.training.steps - cfg.training.anneal_steps
-            )
+            remaining_total_steps = cfg.training.steps - cfg.training.anneal_steps
             remaining_steps = step - cfg.training.anneal_steps
             lr = (
                 -1
@@ -124,8 +121,6 @@ def create_optimizer(
                 }
             ]
     if BNB_FLAG:
-        return bnb.optim.AdamW(
-            params, lr, betas=(0.9, 0.95), eps=1e-8, optim_bits=8
-        )
+        return bnb.optim.AdamW(params, lr, betas=(0.9, 0.95), eps=1e-8, optim_bits=8)
     else:
         return torch.optim.AdamW(params, lr, betas=(0.9, 0.95), eps=1e-8)

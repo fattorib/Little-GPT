@@ -1,5 +1,7 @@
 import unittest
+
 import torch
+
 from src.models.GPT2 import model_getter as model_getter_gpt2
 from src.utils.adapters import add_adapters, prepare_adapter_training
 
@@ -34,9 +36,9 @@ class TestAdapterBasic(unittest.TestCase):
         # Ensure adding adapters works
         adapter = add_adapters(self.model, reduction_factor=8)
         adapter.to(self.device)
-        test_batch = torch.randint(
-            low=0, high=50257, size=(4, self.seq_len)
-        ).to(self.device)
+        test_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).to(
+            self.device
+        )
         adapter(test_batch)
 
     def test_adapter_training(self):
@@ -46,9 +48,9 @@ class TestAdapterBasic(unittest.TestCase):
             p.numel() for p in adapter.parameters() if p.requires_grad == True
         )
         adapter = prepare_adapter_training(adapter)
-        test_batch = torch.randint(
-            low=0, high=50257, size=(4, self.seq_len)
-        ).to(self.device)
+        test_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).to(
+            self.device
+        )
         adapter.to(self.device)
         adapter(test_batch)
 
@@ -70,9 +72,9 @@ class TestAdapterBasic(unittest.TestCase):
 
         adapter = add_adapters(self.model, reduction_factor=8)
         adapter = prepare_adapter_training(adapter)
-        test_batch = torch.randint(
-            low=0, high=50257, size=(4, self.seq_len)
-        ).to(self.device)
+        test_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).to(
+            self.device
+        )
         adapter.to(self.device)
         adapter(test_batch)
 
@@ -87,8 +89,8 @@ class TestAdapterBasic(unittest.TestCase):
         model.to(self.device)
         adapter = add_adapters(self.model, reduction_factor=8)
         adapter = prepare_adapter_training(adapter)
-        test_batch = torch.randint(
-            low=0, high=50257, size=(4, self.seq_len)
-        ).to(self.device)
+        test_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).to(
+            self.device
+        )
         adapter.to(self.device)
         adapter(test_batch)

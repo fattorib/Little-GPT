@@ -3,9 +3,10 @@ This is called through a subprocess and performs a background compression and up
 Ensures model checkpointing is not a bottleneck on slower connections
 """
 
-from data_utils.upload_checkpoint import upload_checkpoint
 import argparse
 import os
+
+from data_utils.upload_checkpoint import upload_checkpoint
 
 
 def parse():

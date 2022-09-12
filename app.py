@@ -1,8 +1,10 @@
+import argparse
+
 import gradio as gr
 import torch
+
 from src.models.GPT2 import model_getter
 from src.utils.generation_utils import TextGenerator
-import argparse
 
 
 def parse():

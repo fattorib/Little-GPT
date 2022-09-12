@@ -1,5 +1,7 @@
 import unittest
+
 import torch
+
 from src.models.gMLP import model_getter
 from src.models.GPT2 import model_getter as model_getter_gpt2
 
@@ -46,9 +48,7 @@ class TestTriangular(unittest.TestCase):
         eq_cond = torch.sum(
             torch.eq(
                 self.model.gmlpblocks[0].sgu.token_mix.fc_causal.weight,
-                torch.tril(
-                    self.model.gmlpblocks[0].sgu.token_mix.fc_causal.weight
-                ),
+                torch.tril(self.model.gmlpblocks[0].sgu.token_mix.fc_causal.weight),
             )
         )
 
@@ -65,9 +65,9 @@ class TestTriangular(unittest.TestCase):
         )
 
         for _ in range(0, 250):
-            data_batch = torch.randint(
-                low=0, high=50257, size=(4, self.seq_len)
-            ).to(self.device)
+            data_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).to(
+                self.device
+            )
 
             optimizer.zero_grad()
 
@@ -80,9 +80,7 @@ class TestTriangular(unittest.TestCase):
         eq_cond = torch.sum(
             torch.eq(
                 self.model.gmlpblocks[0].sgu.token_mix.fc_causal.weight,
-                torch.tril(
-                    self.model.gmlpblocks[0].sgu.token_mix.fc_causal.weight
-                ),
+                torch.tril(self.model.gmlpblocks[0].sgu.token_mix.fc_causal.weight),
             )
         )
 
@@ -116,9 +114,7 @@ class TestGPT(unittest.TestCase):
         del self.model
 
     def test_forward(self):
-        data_batch = torch.randint(
-            low=0, high=50257, size=(4, self.seq_len)
-        ).cuda()
+        data_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).cuda()
 
         # forward with labels
         logits, loss = self.model(data_batch, data_batch)
@@ -154,9 +150,9 @@ class TestALiBi(unittest.TestCase):
         del self.model
 
     def test_forward(self):
-        data_batch = torch.randint(
-            low=0, high=50257, size=(4, self.seq_len)
-        ).to(self.device)
+        data_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).to(
+            self.device
+        )
 
         # forward with labels
         logits, loss = self.model(data_batch, data_batch)
@@ -166,18 +162,18 @@ class TestALiBi(unittest.TestCase):
 
     def test_change_ctx(self):
         # Double sequence length, make sure no errors
-        data_batch = torch.randint(
-            low=0, high=50257, size=(4, 2 * self.seq_len)
-        ).to(self.device)
+        data_batch = torch.randint(low=0, high=50257, size=(4, 2 * self.seq_len)).to(
+            self.device
+        )
 
         with torch.no_grad():
             logits, loss = self.model(data_batch, data_batch)
 
         # halve sequence length to original, make sure no errors
 
-        data_batch = torch.randint(
-            low=0, high=50257, size=(4, self.seq_len)
-        ).to(self.device)
+        data_batch = torch.randint(low=0, high=50257, size=(4, self.seq_len)).to(
+            self.device
+        )
 
         with torch.no_grad():
             logits, loss = self.model(data_batch, data_batch)

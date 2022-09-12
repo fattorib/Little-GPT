@@ -2,9 +2,10 @@
 Functions for adding adapter modules to a pretrained GPT2 model.
 """
 
+from typing import Tuple
+
 import torch
 import torch.nn as nn
-from typing import Tuple
 
 
 def _weights_init(m):
@@ -77,11 +78,7 @@ def add_adapters(
             ) -> Tuple[torch.Tensor, torch.Tensor]:
                 mlp_out = self.mlp(self.ln1(x))
                 attn_out = self.attn(self.ln1(x), use_cache, layer_past)
-                x = (
-                    x
-                    + self.adapter_ff(mlp_out)
-                    + self.adapter_attn(attn_out[0])
-                )
+                x = x + self.adapter_ff(mlp_out) + self.adapter_attn(attn_out[0])
                 return x, attn_out[1]
 
         bound_method = forward_adapter.__get__(
