@@ -18,6 +18,7 @@ from tqdm.auto import tqdm
 
 from src.training.training_utils import adjust_learning_rate, create_optimizer
 from src.utils.calc import compute_num_tokens
+from src.utils.configs import flatten_dict
 
 logging.basicConfig(level=logging.INFO)
 
@@ -109,24 +110,12 @@ def main():
 
     from braceexpand import braceexpand
 
-    # We have two separate datasets so we just combine them together and perform a large shuffle at beginning of training
-    original_urls_train = (
-        "data/processed/train/webtextplusplus_no_resample_train-{000000..000211}.tar.gz"
-    )
-    new_urls_train = "data/processed/train/WebTextNouveau_train-{000000..000050}.tar.gz"
+    train_shards = cfg.data.train_shard_urls
+    validation_shards = cfg.data.validation_shard_urls
 
-    original_urls_validation = "data/processed/train/webtextplusplus_no_resample_validation-{000000..000018}.tar.gz"
-    new_urls_validation = (
-        "data/processed/train/WebTextNouveau_validation-{000000..000006}.tar.gz"
-    )
+    train_urls = sum([list(braceexpand(s)) for s in train_shards])
 
-    train_urls = list(braceexpand(new_urls_train)) + list(
-        braceexpand(original_urls_train)
-    )
-
-    validation_urls = list(braceexpand(new_urls_validation)) + list(
-        braceexpand(original_urls_validation)
-    )
+    validation_urls = sum([list(braceexpand(s)) for s in validation_shards])
 
     # Since we are combining multiple lists of Shards, to properly shuffle,
     # we need to set the buffer/initial values to be quite large.
@@ -242,21 +231,9 @@ def main():
         wandb.init(id=id, resume="allow", project="Sprinkle")
         # Training Setup
         if args.resume == False or args.keep == False:
-            # No need to change this if resuming from a run
-            wandb.config.max_epochs = cfg.training.max_epochs
-            wandb.config.steps = cfg.training.steps
-            wandb.config.batch_size = cfg.training.batch_size
-            wandb.config.num_tokens = num_tokens / 1e9
-
-            # Hyperparam Setup
-            wandb.config.weight_decay = cfg.training.weight_decay
-            wandb.config.warmup = cfg.training.warmup
-            wandb.config.accum_steps = cfg.training.gradient_accumulation_steps
-            wandb.config.seq_len = cfg.data.seq_len
-            wandb.config.model = cfg.model.size
-
-            # Model setup
-            wandb.config.corpus = cfg.data.corpus
+            flat_dict = flatten_dict(cfg)
+            flat_dict["training.num_tokens"] = num_tokens
+            wandb.config.update(flat_dict)
 
     for i in range(cfg.training.max_epochs):
 

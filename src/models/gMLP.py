@@ -377,7 +377,7 @@ def create_gmlp_base(vocab_size: int, num_ctx: int, **kwargs) -> gMLP:
         embedding_dim=768,
         N=12,
         vocab_size=vocab_size,
-        tied_head=True ** kwargs,
+        tied_head=True**kwargs,
     )
 
 

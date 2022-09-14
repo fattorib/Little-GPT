@@ -116,7 +116,7 @@ class FrozenBNBStableEmbedding(nn.Module):
         return f"{self.__class__.__name__}({self.num_embeddings}, {self.embedding_dim})"
 
 
-def quantize_blockise_lowmemory(matrix: torch.Tensor, chunk_size: int = 2 ** 20):
+def quantize_blockise_lowmemory(matrix: torch.Tensor, chunk_size: int = 2**20):
     assert chunk_size % 4096 == 0
     code = None
     chunks = []

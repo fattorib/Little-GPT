@@ -32,5 +32,7 @@ model:
 data: 
   corpus: 'webtextnouveau'
   metadata_path: 'data/processed/train/openwebtext_metadata.json'
+  train_shard_urls: ["data/processed/train/webtextplusplus_no_resample_train-{000000..000211}.tar.gz", "data/processed/train/WebTextNouveau_train-{000000..000050}.tar.gz"]
+  validation_shard_urls: ["data/processed/train/webtextplusplus_no_resample_validation-{000000..000018}.tar.gz", "data/processed/train/WebTextNouveau_validation-{000000..000006}.tar.gz"]
   seq_len: 1024
   train_len: 512

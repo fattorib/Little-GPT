@@ -52,7 +52,7 @@ class TestTriangular(unittest.TestCase):
             )
         )
 
-        self.assertEqual(eq_cond, self.seq_len ** 2)
+        self.assertEqual(eq_cond, self.seq_len**2)
 
     def test_triangular_persists(self):
         """
@@ -84,7 +84,7 @@ class TestTriangular(unittest.TestCase):
             )
         )
 
-        self.assertEqual(eq_cond, self.seq_len ** 2)
+        self.assertEqual(eq_cond, self.seq_len**2)
 
 
 class TestGPT(unittest.TestCase):
