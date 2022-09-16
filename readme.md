@@ -23,7 +23,7 @@ GPT* is a collection of transformer models based on GPT2-Small, GPT2-Medium, and
 | n_ctx               | 512 Train / 1024 Inference |512 Train / 1024 Inference |512 Train / 1024 Inference|
 
 ### Dataset 📚: 
-Both models were training for one epoch (roughly ~26B tokens) on a dataset consisting of: 
+All models were trained for one epoch (roughly ~26B tokens) on a dataset consisting of: 
 * [OpenWebText1](https://github.com/jcpeterson/openwebtext) and [OpenWebText2](https://arxiv.org/abs/2101.00027)
 * [BookCorpus](https://arxiv.org/abs/2101.00027)
 * [Bibiliotik/Books3](https://arxiv.org/abs/2101.00027)
