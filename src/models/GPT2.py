@@ -43,7 +43,7 @@ def _weights_init(m, num_layers):
 
     for name, p in m.named_parameters():
         if "fc_resid" in name and "weight" in name:
-            p.data.normal_(mean=0.0, std=(0.02 / math.sqrt(num_layers)))
+            p.data.normal_(mean=0.0, std=(0.02 / math.sqrt(2*num_layers)))
 
 
 def _embedding_init(m):
