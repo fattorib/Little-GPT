@@ -80,6 +80,7 @@ def generate_text(
     top_p,
     tau,
     repetition_penalty,
+    epsilon,
     sampling_choice,
 ):
     if sampling_choice == "Top-k":
@@ -93,6 +94,9 @@ def generate_text(
 
     elif sampling_choice == "Greedy":
         sampling_method = "greedy"
+    
+    elif sampling_choice == "$\eta$":
+        sampling_method = "eta"
 
     generated_text, new_gen, logprobs = generator.generate_text_from_prompt(
         model=model,
@@ -103,6 +107,7 @@ def generate_text(
         top_p=top_p,
         tau=tau,
         repetition_penalty=repetition_penalty,
+        epsilon = epsilon,
         sampling_method=sampling_method,
         device=DEVICE,
     )
@@ -158,8 +163,14 @@ if __name__ == "__main__":
                 default=1.2,
                 label="Repetition Penalty",
             ),
+            gr.inputs.Slider(
+                0.0,
+                0.001,
+                default=0.0006,
+                label="$\epsilon$",
+            ),
             gr.inputs.Radio(
-                choices=["Top-k", "Nucleus", "Typical", "Greedy"],
+                choices=["Top-k", "Nucleus", "Typical", "Greedy", "$\eta$"],
                 label="Sampling Method",
                 default="Nucleus",
             ),

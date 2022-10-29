@@ -15,6 +15,7 @@ import torch.nn.functional as F
 from tokenizers import Tokenizer
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
+import math 
 
 
 def text_standardize(text):
@@ -49,10 +50,9 @@ def top_p_logits(
     top_p: float = 0.0,
     filter_value: float = -float("Inf"),
 ) -> torch.Tensor:
-    """Filter a distribution of logits using top-k and/or nucleus (top-p) filtering
+    """Filter a distribution of logits using nucleus (top-p) filtering
     Args:
         logits: logits distribution shape (vocabulary size)
-        top_k >0: keep only top k tokens with highest probability (top-k filtering).
         top_p >0.0: keep the top tokens with cumulative probability >= top_p (nucleus filtering).
             Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751)
     """
@@ -105,6 +105,29 @@ def typical_sampling_logits(
     logits = logits.masked_fill(indices_to_remove, filter_value)
     return logits
 
+def eta_sampling_logits(
+    logits: torch.Tensor, 
+    epsilon: float = 1.0,
+    filter_value: float = -float("Inf"),
+    ) -> torch.Tensor:
+
+# Entropy calculation
+
+    normalized = torch.nn.functional.log_softmax(logits, dim=-1)
+    p = torch.exp(normalized)
+    ent = -(normalized * p).nansum(-1, keepdim=True)
+
+    entropy_exp_thresh = math.sqrt(epsilon)*torch.exp(ent)
+
+    eta_thresh = min(epsilon, entropy_exp_thresh.item())
+
+    indices_to_remove = logits <= eta_thresh
+
+    logits = logits.masked_fill(indices_to_remove, filter_value)
+
+    return logits 
+
+
 
 class TextGenerator:
     """
@@ -139,6 +162,7 @@ class TextGenerator:
         tau: float = None,
         repetition_penalty: float = 1.0,
         sampling_method: str = None,
+        epsilon: float = 1.0,
         device: str = "cpu",
     ) -> Tuple[str, str, List[float]]:
 
@@ -151,6 +175,7 @@ class TextGenerator:
             top_p=top_p,
             tau=tau,
             repetition_penalty=repetition_penalty,
+            epsilon=epsilon,
             sampling_method=sampling_method,
             device=device,
         )
@@ -180,6 +205,7 @@ class TextGenerator:
         top_p: float = 0.0,
         tau: float = 0.2,
         repetition_penalty: float = 1.0,
+        epsilon: float = 0.0001,
         sampling_method: List[str] = None,
         device: str = "cpu",
     ) -> Tuple[torch.Tensor, int, List[float]]:
@@ -233,6 +259,9 @@ class TextGenerator:
 
             elif sampling_method == "topk":
                 logits = top_k_logits(logits, k=top_k)
+
+            elif sampling_method == "eta":
+                logits = eta_sampling_logits(logits, epsilon=epsilon)
 
             probs = F.softmax(logits, dim=-1)
 
