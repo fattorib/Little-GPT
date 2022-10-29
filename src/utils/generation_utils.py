@@ -5,8 +5,10 @@ Helper utilities and classes for text generation from models. Supports:
 2. Top-p sampling
 3. Top-k sampling
 4. Typical sampling
+5. Eta Sampling
 
 """
+import math
 import re
 from typing import List, Tuple
 
@@ -15,7 +17,6 @@ import torch.nn.functional as F
 from tokenizers import Tokenizer
 from tqdm import tqdm
 from transformers import GPT2Tokenizer
-import math 
 
 
 def text_standardize(text):
@@ -78,6 +79,10 @@ def typical_sampling_logits(
     min_tokens_to_keep: int = 1,
     filter_value: float = -float("Inf"),
 ) -> torch.Tensor:
+    """
+    From `Locally Typical Sampling` by Meister et al.
+        <https://arxiv.org/abs/2202.00666>
+    """
 
     # Entropy calculation
 
@@ -105,19 +110,23 @@ def typical_sampling_logits(
     logits = logits.masked_fill(indices_to_remove, filter_value)
     return logits
 
+
 def eta_sampling_logits(
-    logits: torch.Tensor, 
+    logits: torch.Tensor,
     epsilon: float = 1.0,
     filter_value: float = -float("Inf"),
-    ) -> torch.Tensor:
+) -> torch.Tensor:
+    """
+    From `Truncation Sampling as Language Model Desmoothing` by Hewitt et al.
+        <https://arxiv.org/abs/2210.15191>
+    """
 
-# Entropy calculation
-
+    # Entropy calculation
     normalized = torch.nn.functional.log_softmax(logits, dim=-1)
     p = torch.exp(normalized)
     ent = -(normalized * p).nansum(-1, keepdim=True)
 
-    entropy_exp_thresh = math.sqrt(epsilon)*torch.exp(ent)
+    entropy_exp_thresh = math.sqrt(epsilon) * torch.exp(ent)
 
     eta_thresh = min(epsilon, entropy_exp_thresh.item())
 
@@ -125,8 +134,7 @@ def eta_sampling_logits(
 
     logits = logits.masked_fill(indices_to_remove, filter_value)
 
-    return logits 
-
+    return logits
 
 
 class TextGenerator:

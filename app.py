@@ -94,7 +94,7 @@ def generate_text(
 
     elif sampling_choice == "Greedy":
         sampling_method = "greedy"
-    
+
     elif sampling_choice == "$\eta$":
         sampling_method = "eta"
 
@@ -107,7 +107,7 @@ def generate_text(
         top_p=top_p,
         tau=tau,
         repetition_penalty=repetition_penalty,
-        epsilon = epsilon,
+        epsilon=epsilon,
         sampling_method=sampling_method,
         device=DEVICE,
     )
